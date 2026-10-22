@@ -1,0 +1,159 @@
+---
+# Not linked from anywhere and kept out of the sitemap. It's a tool for you,
+# not a page for readers — and it works entirely in your own browser.
+sitemap: false
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lock an entry</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="assets/css/style.css">
+<style>
+  /* This page is a workbench, so it gets its own plain layout. */
+  body{ max-width:50rem; margin:0 auto; padding:5vh 6vw 12vh }
+  h1{ font-size:1.9rem; letter-spacing:-.03em; margin:0 0 .4rem }
+  .lede{ color:var(--ink-soft); margin:0 0 2.4rem; max-width:34rem }
+  fieldset{ border:0; margin:0 0 2rem; padding:0 }
+  label{ display:block; font-size:.62rem; letter-spacing:.2em;
+         text-transform:uppercase; color:var(--ink-soft); margin:0 0 .5rem }
+  textarea, input[type=password], output{
+    display:block; width:100%; box-sizing:border-box;
+    font-family:var(--font-mono); font-size:.86rem; line-height:1.6;
+    padding:.8rem .9rem; border-radius:10px;
+    border:1px solid var(--hairline);
+    background:rgba(253,252,250,.75); color:var(--ink);
+  }
+  textarea{ min-height:14rem; resize:vertical }
+  output{ word-break:break-all; min-height:4rem; white-space:pre-wrap }
+  .row{ display:flex; gap:.7rem; align-items:center; flex-wrap:wrap; margin-top:1rem }
+  button{
+    all:unset; cursor:pointer;
+    padding:.55rem 1.2rem; border-radius:999px;
+    background:var(--ink); color:#fdfcfa;
+    font-size:.7rem; letter-spacing:.16em; text-transform:uppercase;
+  }
+  button.ghost{ background:none; color:var(--ink-soft); border:1px solid var(--hairline) }
+  button[disabled]{ opacity:.5; cursor:default }
+  .say{ font-size:.85rem; color:var(--ink-soft); margin:.9rem 0 0 }
+  .say.bad{ color:#8a3b2a }
+  .warn{
+    margin:2.5rem 0 0; padding:1.1rem 1.3rem;
+    border-left:2px solid #b06c34;
+    font-size:.9rem; color:var(--ink-soft);
+  }
+  code{ font-family:var(--font-mono); font-size:.85em }
+  pre{ font-family:var(--font-mono); font-size:.78rem; line-height:1.65;
+       background:rgba(253,252,250,.7); border:1px solid var(--hairline);
+       border-radius:10px; padding:1rem 1.1rem; overflow-x:auto }
+</style>
+</head>
+<body>
+
+<h1>Lock an entry</h1>
+<p class="lede">
+  Paste a piece of writing, pick a password, and this gives you a line to put
+  in <code>entries.js</code>. The encrypting happens here in your browser &mdash;
+  nothing is uploaded, and the readable words never end up in the published
+  file.
+</p>
+
+<fieldset>
+  <label for="text">The writing</label>
+  <textarea id="text" spellcheck="false" placeholder="Write or paste it here. Same formatting as any other entry: blank line between paragraphs, ## for a heading, ![alt](images/x.jpg) for a photo."></textarea>
+</fieldset>
+
+<fieldset>
+  <label for="pw">Password</label>
+  <input id="pw" type="password" autocomplete="off" spellcheck="false">
+  <div class="row">
+    <button id="go" type="button">Lock it</button>
+    <button id="copy" class="ghost" type="button" disabled>Copy the block</button>
+  </div>
+  <p class="say" id="say"></p>
+</fieldset>
+
+<fieldset>
+  <label for="out">Paste this into entries.js</label>
+  <output id="out"></output>
+</fieldset>
+
+<div class="warn">
+  <p><strong>Two things worth knowing.</strong></p>
+  <p>
+    There is no way to recover the writing if you forget the password &mdash;
+    not for you, not for me. Keep the original somewhere safe until you're
+    sure you still want it locked.
+  </p>
+  <p>
+    The date, title and tags of a locked entry stay visible to everyone. Only
+    the writing is sealed. So give it a title you're happy for a stranger to
+    read.
+  </p>
+</div>
+
+<script src="assets/js/lock.js"></script>
+<script>
+(function () {
+  const $ = s => document.querySelector(s);
+  const text = $('#text'), pw = $('#pw'), out = $('#out'), say = $('#say');
+  const go = $('#go'), copy = $('#copy');
+
+  if (!window.lock.available) {
+    say.textContent = 'This browser can\u2019t encrypt. Try Safari, Chrome or Firefox.';
+    say.className = 'say bad';
+    go.disabled = true;
+    return;
+  }
+
+  function block(secret) {
+    return [
+      '  {',
+      "    date: '" + new Date().toISOString().slice(0, 10) + "',",
+      "    type: 'writing',",
+      "    title: 'A title you don\\'t mind people seeing',",
+      "    tags: ['private'],",
+      '    bg: PALETTE.slate,',
+      "    hint: 'Ask me for the password.',",
+      '    dropcap: true,',
+      "    secret: '" + secret + "',",
+      '  },'
+    ].join('\n');
+  }
+
+  go.addEventListener('click', function () {
+    if (!text.value.trim()) { say.textContent = 'Nothing to lock yet.'; say.className = 'say bad'; return; }
+    if (!pw.value)          { say.textContent = 'Pick a password first.'; say.className = 'say bad'; return; }
+
+    go.disabled = true; go.textContent = 'Locking\u2026';
+    say.textContent = ''; say.className = 'say';
+
+    window.lock.seal(text.value, pw.value)
+      /* Decrypt it straight back, so what you're handed is something that
+         has actually been proven to open with the password you typed. */
+      .then(secret => window.lock.open(secret, pw.value).then(back => {
+        if (back !== text.value) throw new Error('round trip did not match');
+        out.textContent = block(secret);
+        copy.disabled = false;
+        say.textContent = 'Locked, and checked that the password opens it again.';
+      }))
+      .catch(err => {
+        say.textContent = 'That didn\u2019t work: ' + err.message;
+        say.className = 'say bad';
+      })
+      .then(() => { go.disabled = false; go.textContent = 'Lock it'; });
+  });
+
+  copy.addEventListener('click', function () {
+    navigator.clipboard.writeText(out.textContent).then(function () {
+      copy.textContent = 'Copied';
+      setTimeout(function () { copy.textContent = 'Copy the block'; }, 1600);
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

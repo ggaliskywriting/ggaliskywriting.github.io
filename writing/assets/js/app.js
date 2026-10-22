@@ -196,10 +196,14 @@
     const kind = KINDS[e.type] || { label: e.type || 'Entry' };
     const d = parseDate(e.date);
     const pretty = d.bad ? '' : MONTHS[d.m - 1] + ' ' + d.d + ', ' + d.y;
+    const tags = (e.tags || []).map(function (t) {
+      return '<span class="e-tag">' + esc(t) + '</span>';
+    }).join('');
     return '<div class="e-head">' +
              '<span class="e-meta">' +
                '<span class="e-kind">' + esc(kind.label) + '</span>' +
                (pretty ? '<time datetime="' + esc(e.date) + '">' + pretty + '</time>' : '') +
+               tags +
              '</span>' +
              '<button class="e-link" data-slug="' + esc(slug) + '" ' +
                      'title="Copy a link straight to this entry" ' +
@@ -217,12 +221,29 @@
 
     let inner = headHTML(e, item.slug);
 
+    if (e.place) inner += placeHTML(e.place);
+
+    /* Still sealed: show the lock instead of the entry. The title, date and
+       tags above are all anyone gets until the password turns up. */
+    if (e.secret && item.openBody == null) {
+      if (e.title) inner += '<h2 class="e-title">' + esc(e.title) + '</h2>';
+      inner += lockHTML(item);
+      sec.innerHTML = inner;
+      sec.classList.add('is-locked');
+      item.el = sec;
+      return sec;
+    }
+
+    /* An entry that was locked keeps its writing in item.openBody once the
+       password has turned it back into words. */
+    const body = item.openBody != null ? item.openBody : e.body;
+
     if (e.type === 'quote') {
       inner += '<blockquote class="quote">' +
                  '<p class="quote-text">' + window.md.fmt(e.quote || '') + '</p>' +
                  (e.by ? '<p class="quote-by">&mdash; ' + esc(e.by) + '</p>' : '') +
                '</blockquote>';
-      if (e.body) inner += '<div class="prose quote-note">' + window.md.render(e.body) + '</div>';
+      if (body) inner += '<div class="prose quote-note">' + window.md.render(body) + '</div>';
 
     } else if (e.type === 'photos') {
       if (e.title) inner += '<h2 class="e-title">' + esc(e.title) + '</h2>';
@@ -232,31 +253,201 @@
       if (e.title) inner += '<h2 class="e-title">' + esc(e.title) + '</h2>';
       inner += '<div class="essay' + (e.flip ? ' flip' : '') + '">' +
                  galleryHTML(e.photos, e.cols, item.slug) +
-                 proseHTML(e.body, e.dropcap) +
+                 proseHTML(body, e.dropcap) +
                '</div>';
 
     } else if (e.type === 'music') {
       if (e.title) inner += '<h2 class="e-title">' + esc(e.title) + '</h2>';
       const embed = spotifyEmbed(e.spotify);
-      const player = embed
-        ? '<iframe class="music-embed" src="' + esc(embed) + '" title="' + esc((e.title || 'Spotify') + ' \u2014 Spotify player') + '" ' +
-          'loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>'
-        : '<a class="music-card" href="' + esc(e.link || '#') + '" target="_blank" rel="noopener noreferrer">' +
-            '<div class="mc-art" aria-hidden="true"></div>' +
-            '<div class="mc-track">' + esc(e.track || e.title || 'Untitled') + '</div>' +
-            '<div class="mc-artist">' + esc(e.artist || '') + '</div>' +
-            '<div class="mc-cta">Listen &nearr;</div>' +
-          '</a>';
-      inner += '<div class="music">' + player + proseHTML(e.body, e.dropcap) + '</div>';
+      let player;
+      if (embed) {
+        player = '<iframe class="music-embed" src="' + esc(embed) + '" title="' + esc((e.title || 'Spotify') + ' \u2014 Spotify player') + '" ' +
+                 'loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>';
+      } else if (e.soundcloud) {
+        /* Just a card to begin with. The real player is a heavy iframe and
+           there are dozens of tracks on this page, so one only gets built
+           when someone actually asks to hear something. */
+        player = '<button class="music-card" data-sc="' + esc(e.soundcloud) + '" ' +
+                         'data-title="' + esc(e.track || e.title || '') + '">' +
+                   '<span class="mc-art" aria-hidden="true"></span>' +
+                   '<span class="mc-track">' + esc(e.track || e.title || 'Untitled') + '</span>' +
+                   '<span class="mc-artist">' + esc(e.artist || '') +
+                     (e.length ? ' &middot; ' + esc(e.length) : '') + '</span>' +
+                   '<span class="mc-cta">Play &#9654;</span>' +
+                 '</button>';
+      } else {
+        player = '<a class="music-card" href="' + esc(e.link || '#') + '" target="_blank" rel="noopener noreferrer">' +
+                   '<span class="mc-art" aria-hidden="true"></span>' +
+                   '<span class="mc-track">' + esc(e.track || e.title || 'Untitled') + '</span>' +
+                   '<span class="mc-artist">' + esc(e.artist || '') + '</span>' +
+                   '<span class="mc-cta">Listen &nearr;</span>' +
+                 '</a>';
+      }
+      inner += '<div class="music">' + player + proseHTML(body, e.dropcap) + '</div>';
 
     } else {
       if (e.title) inner += '<h2 class="e-title">' + esc(e.title) + '</h2>';
-      inner += proseHTML(e.body, e.dropcap);
+      inner += proseHTML(body, e.dropcap);
+    }
+
+    if (e.source && e.source.url) {
+      inner += '<p class="e-source">First posted on ' +
+                 '<a href="' + esc(e.source.url) + '" target="_blank" rel="noopener noreferrer">' +
+                   esc(e.source.name || 'the original') +
+                 '</a></p>';
     }
 
     sec.innerHTML = inner;
     item.el = sec;
     return sec;
+  }
+
+  /* ======================================================================
+     LOCKED ENTRIES
+     The writing lives encrypted in the data file. A password turns it back
+     into words here in the browser; nothing is sent anywhere. Unlocking one
+     entry unlocks its tag-mates too, and that's remembered for the rest of
+     the browser session so a password is only typed once.
+     ====================================================================== */
+
+  const KEYSTORE = 'gg-writing-keys';
+
+  function savedKeys() {
+    try { return JSON.parse(sessionStorage.getItem(KEYSTORE)) || {}; }
+    catch (err) { return {}; }
+  }
+
+  function rememberKey(tags, password) {
+    try {
+      const keys = savedKeys();
+      (tags && tags.length ? tags : ['locked']).forEach(function (t) { keys[t] = password; });
+      sessionStorage.setItem(KEYSTORE, JSON.stringify(keys));
+    } catch (err) { /* private browsing; just don't remember it */ }
+  }
+
+  function lockHTML(item) {
+    const tags = item.data.tags || [];
+    const named = tags.length ? tags.join(', ') : 'private';
+    if (!window.lock || !window.lock.available) {
+      return '<div class="lock"><p class="lock-note">This entry is locked, and this ' +
+             'browser is too old to unlock it.</p></div>';
+    }
+    return '<form class="lock" data-slug="' + esc(item.slug) + '">' +
+             '<p class="lock-head"><span class="lock-icon" aria-hidden="true"></span>' +
+               'Locked &mdash; ' + esc(named) + '</p>' +
+             '<p class="lock-note">' + esc(item.data.hint || 'Ask me for the password.') + '</p>' +
+             '<div class="lock-row">' +
+               '<label class="lock-label" for="pw-' + esc(item.slug) + '">Password</label>' +
+               '<input class="lock-input" id="pw-' + esc(item.slug) + '" type="password" ' +
+                      'autocomplete="off" spellcheck="false">' +
+               '<button class="lock-go" type="submit">Unlock</button>' +
+             '</div>' +
+             '<p class="lock-error" role="alert"></p>' +
+           '</form>';
+  }
+
+  /* Re-render one entry where it stands, for when it stops being locked. */
+  function refreshEntry(item) {
+    const old = item.el;
+    const hidden = old.style.display;   // a filter may be hiding it; keep it hidden
+    const fresh = renderEntry(item);
+    fresh.style.display = hidden;
+    old.replaceWith(fresh);
+    fresh.classList.add('in');          // it's already on screen; don't re-animate
+    relayout();
+  }
+
+  function tryUnlock(item, password) {
+    return window.lock.open(item.data.secret, password).then(function (text) {
+      item.openBody = text;
+      rememberKey(item.data.tags, password);
+      refreshEntry(item);
+      /* anything else behind the same password opens at the same time */
+      entries.forEach(function (other) {
+        if (other !== item && other.data.secret && other.openBody == null) {
+          window.lock.open(other.data.secret, password).then(function (t) {
+            other.openBody = t;
+            refreshEntry(other);
+          }).catch(function () { /* different password; leave it shut */ });
+        }
+      });
+    });
+  }
+
+  /* On load, retry whatever passwords this session already knows. */
+  function reopenRemembered() {
+    const keys = savedKeys();
+    if (!Object.keys(keys).length || !window.lock || !window.lock.available) return;
+    entries.forEach(function (item) {
+      if (!item.data.secret || item.openBody != null) return;
+      const tags = item.data.tags && item.data.tags.length ? item.data.tags : ['locked'];
+      const pw = tags.map(function (t) { return keys[t]; }).filter(Boolean)[0];
+      if (pw) tryUnlock(item, pw).catch(function () {});
+    });
+  }
+
+  /* ======================================================================
+     WHERE IT WAS WRITTEN
+     A few map tiles from OpenStreetMap, arranged so the spot sits in the
+     middle. No map library, no API key — just images, and they don't load
+     until the entry scrolls into view.
+     ====================================================================== */
+
+  function placeHTML(place) {
+    if (!place || typeof place.lat !== 'number' || typeof place.lon !== 'number') return '';
+    const z = clamp(place.zoom || 9, 1, 18);
+    const W = 268, H = 168, T = 256;
+    const n = Math.pow(2, z);
+
+    /* lon/lat -> Web Mercator pixels at this zoom */
+    const latR = place.lat * Math.PI / 180;
+    const px = (place.lon + 180) / 360 * n * T;
+    const py = (1 - Math.log(Math.tan(latR) + 1 / Math.cos(latR)) / Math.PI) / 2 * n * T;
+
+    /* the top-left world pixel of our little window, centred on the spot */
+    const ox = px - W / 2, oy = py - H / 2;
+    const cx = Math.floor(ox / T), cy = Math.floor(oy / T);
+
+    let tiles = '';
+    for (let r = cy; r * T < oy + H; r++) {
+      if (r < 0 || r >= n) continue;
+      for (let c = cx; c * T < ox + W; c++) {
+        const wrapped = ((c % n) + n) % n;    // the world repeats east-west
+        tiles += '<img class="place-tile" alt="" loading="lazy" decoding="async" ' +
+                 'src="https://tile.openstreetmap.org/' + z + '/' + wrapped + '/' + r + '.png" ' +
+                 'style="left:' + Math.round(c * T - ox) + 'px;top:' + Math.round(r * T - oy) + 'px">';
+      }
+    }
+
+    return '<figure class="place">' +
+             '<div class="place-map" style="width:' + W + 'px;height:' + H + 'px">' +
+               tiles +
+               '<span class="place-pin" aria-hidden="true"></span>' +
+             '</div>' +
+             '<figcaption>' +
+               '<span class="place-name">' + esc(place.name || '') + '</span>' +
+               '<a class="place-credit" href="https://www.openstreetmap.org/copyright" ' +
+                  'target="_blank" rel="noopener noreferrer">&copy; OpenStreetMap</a>' +
+             '</figcaption>' +
+           '</figure>';
+  }
+
+  /* Swap a track's card for the real SoundCloud player and start it. The
+     page height changes, so the timeline has to be re-measured after. */
+  function playTrack(card) {
+    const id = card.dataset.sc;
+    const src = 'https://w.soundcloud.com/player/?url=' +
+                encodeURIComponent('https://api.soundcloud.com/tracks/' + id) +
+                '&color=%232a2c28&auto_play=true&hide_related=true' +
+                '&show_comments=false&show_user=false&show_reposts=false&show_teaser=false';
+    const frame = document.createElement('iframe');
+    frame.className = 'music-embed sc-embed';
+    frame.title = (card.dataset.title || 'Track') + ' \u2014 SoundCloud player';
+    frame.setAttribute('allow', 'autoplay');
+    frame.src = src;
+    frame.addEventListener('load', relayout, { once: true });
+    card.replaceWith(frame);
+    relayout();
   }
 
   function renderFeed() {
@@ -433,6 +624,8 @@
       }
     }
 
+    paintTicks();
+
     if (idx >= 0) {
       if (hashLocked()) return;
       const slug = visible[idx].slug;
@@ -476,19 +669,38 @@
     return 100 - clamp((scrollY / maxScroll()) * 100, 0, 100);
   }
 
+  /* One dot per entry, sitting alongside the track so you can see how many
+     pieces there are and how they're spaced out in time. */
   function buildTicks() {
     if (!scrub.ticks) return;
     const flat = isHorizontal();
-    scrub.ticks.innerHTML = visible.map(function (item) {
+    scrub.ticks.innerHTML = visible.map(function (item, i) {
       const r  = item.el.getBoundingClientRect();
       const at = onAxis(r.top + window.scrollY);
+      const d  = parseDate(item.data.date);
+      const title = (item.data.title || (KINDS[item.data.type] || {}).label || 'Entry') +
+                    (d.bad ? '' : ' \u2014 ' + MONTHS[d.m - 1] + ' ' + d.d + ', ' + d.y);
       /* CSS offsets are measured from the top and the left, which are
          opposite ends of the axis: the past is at the bottom of the upright
          track but at the left of the flat one. */
-      return flat
-        ? '<i style="left:' + at.toFixed(2) + '%"></i>'
-        : '<i style="top:'  + (100 - at).toFixed(2) + '%"></i>';
+      const pos = flat
+        ? 'left:' + at.toFixed(2) + '%'
+        : 'top:'  + (100 - at).toFixed(2) + '%';
+      return '<i style="' + pos + '" data-i="' + i + '" title="' + esc(title) + '"></i>';
     }).join('');
+    /* Past a certain number the dots start touching each other and read as
+       a dotted line rather than as separate pieces, so they shrink. */
+    scrub.ticks.classList.toggle('is-dense', visible.length > 24);
+    paintTicks();
+  }
+
+  /* Light up the dot for whichever entry we're reading. */
+  function paintTicks() {
+    if (!scrub.ticks) return;
+    const dots = scrub.ticks.children;
+    for (let i = 0; i < dots.length; i++) {
+      dots[i].classList.toggle('is-here', i === activeIdx);
+    }
   }
 
   /* reflect the current scroll position in the handle */
@@ -700,7 +912,11 @@
       rows.forEach(function (row) {
         if (row.isIntersecting) { row.target.classList.add('in'); io.unobserve(row.target); }
       });
-    }, { rootMargin: '0px 0px -12% 0px', threshold: 0.08 });
+    /* Threshold has to stay at zero. It's a fraction of the entry's own
+       area, and a long trip report is many screens tall, so asking for even
+       a few percent of one to be on screen at once is impossible and the
+       entry would never un-hide itself. */
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0 });
     entries.forEach(function (i) { io.observe(i.el); });
   }
 
@@ -879,6 +1095,11 @@
       const link = ev.target.closest('.e-link');
       if (link) { copyLink(link.dataset.slug); return; }
 
+      const card = ev.target.closest('.music-card[data-sc]');
+      if (card) { playTrack(card); return; }
+
+      if (ev.target.closest('.lock')) return;   // the form handles itself
+
       const fig = ev.target.closest('figure.shot');
       if (fig) {
         const figs = $$('figure.shot', fig.closest('.gallery'));
@@ -900,15 +1121,48 @@
       if (ev.key === 'ArrowRight') { lbStep(1); }
     });
 
+    /* unlocking a locked entry */
+    feed.addEventListener('submit', function (ev) {
+      const form = ev.target.closest('.lock');
+      if (!form) return;
+      ev.preventDefault();
+
+      let item = null;
+      for (let i = 0; i < entries.length; i++) {
+        if (entries[i].slug === form.dataset.slug) { item = entries[i]; break; }
+      }
+      if (!item) return;
+
+      const field = $('.lock-input', form);
+      const oops  = $('.lock-error', form);
+      const go    = $('.lock-go', form);
+      oops.textContent = '';
+      go.disabled = true;
+      go.textContent = 'Unlocking\u2026';
+
+      tryUnlock(item, field.value).catch(function () {
+        /* The form is still the one on screen, since nothing was replaced. */
+        go.disabled = false;
+        go.textContent = 'Unlock';
+        oops.textContent = 'That password doesn\u2019t open this one.';
+        field.select();
+      });
+    });
+
     /* scroll + resize */
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', relayout);
     window.addEventListener('orientationchange', relayout);
 
-    /* late-loading images change the page height, so re-measure */
+    /* Late-loading images change the page height, so re-measure. Photos
+       written into the prose don't get a fixed shape in the stylesheet —
+       they keep whatever shape they were shot in — so until each one
+       arrives it sits in a placeholder box, and 'is-loaded' releases it. */
     window.addEventListener('load', relayout);
     $$('img', feed).forEach(function (img) {
-      img.addEventListener('load', relayout, { once: true });
+      const settle = function () { img.classList.add('is-loaded'); relayout(); };
+      if (img.complete && img.naturalWidth) settle();
+      else img.addEventListener('load', settle, { once: true });
     });
 
     /* someone edits the hash, or follows an in-page link */
@@ -936,6 +1190,7 @@
     makeBlobs();
     observeReveal();
     bind();
+    reopenRemembered();
     relayout();
 
     /* honour a #slug the visitor arrived with */

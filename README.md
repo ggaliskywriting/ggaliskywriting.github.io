@@ -78,11 +78,22 @@ put a new one.
 | `photos` | A photo grid, no text | `photos`, `cols: 1`–`3` |
 | `photo-essay` | Photos beside text | `photos`, `body`, `flip: true` |
 | `quote` | A big pulled quote | `quote`, `by`, optional `body` note |
-| `music` | A Spotify player plus analysis | `spotify`, `body` |
+| `music` | A player plus whatever you want to say | `soundcloud` or `spotify`, `body` |
+
+Any entry, whatever its type, can also take `source`, `tags`, `place`, and
+`secret` — those are covered further down.
+
+If a piece first appeared somewhere else, `source` prints a small credit line
+at the end linking back to it:
+
+```js
+source: { name: 'Mountain Project', url: 'https://www.mountainproject.com/...' },
+```
 
 ### Photos
 
-Put the image files in the `writing/images/` folder, then point at them:
+Put the image files in the `writing/images/` folder. For a `photos` grid,
+point at them:
 
 ```js
 photos: [
@@ -90,8 +101,28 @@ photos: [
 ],
 ```
 
-`alt` describes the photo for screen readers and is worth writing.
-`caption` is optional and prints under the photo.
+For writing, it's much easier to drop a photo straight into the text. Put it
+on a line of its own, wherever you want it to land:
+
+```
+    We got to the ledge around four.
+
+    ![Looking down past the haul bag at the valley floor](images/day-two.jpg)
+
+    Nobody said much after that.
+```
+
+Two or more on consecutive lines share a row instead of stacking. Add a
+visible caption by putting it in quotes after the filename:
+
+```
+    ![What it shows](images/day-two.jpg "The caption that prints underneath.")
+```
+
+`alt` — the bit in square brackets — describes the photo for anyone using a
+screen reader, and for anyone whose connection drops the image. It's worth
+writing properly. The caption is optional and is for things you want everyone
+to read.
 
 Until you've picked real photos, any `src` beginning with `placeholder:`
 draws generated abstract art instead, so the layout still looks finished:
@@ -107,15 +138,106 @@ slow to open.
 
 ### Music
 
-Right-click a song in Spotify, then **Share → Copy Song Link**, and paste it
-in. Tracks, albums, playlists and podcast episodes all work.
+Your SoundCloud tracks are already in, in a separate file —
+`writing/assets/js/music.js` — so that `entries.js` stays short enough to read.
+They're generated from your account, one row each, and they get folded into the
+same timeline as everything else:
+
+```js
+{ date: '2023-01-09', id: 1419592711, len: '1:42', slug: 'kelp-depths',
+  title: 'Kelp Depths',
+  note: 'Inspired by the cold kelp forests of Northern California' },
+```
+
+`note` is optional and prints under the player; it's filled in for the handful
+of tracks that had a description on SoundCloud. If you write a new description
+over there, copy it into `note` here too — the page doesn't call SoundCloud
+until someone presses play.
+
+Each track shows as a small card. The real player only gets built when someone
+clicks it, because seventy-odd embedded players on one page would make it
+unusable.
+
+For a one-off music entry in `entries.js`, paste a Spotify link instead:
 
 ```js
 { type: 'music', spotify: 'https://open.spotify.com/track/...', body: `...` }
 ```
 
-Leave `spotify` out and supply `track`, `artist` and `link` instead to get a
-simple card with no embedded player.
+Leave both out and supply `track`, `artist` and `link` to get a plain card
+that just links away.
+
+### Tags
+
+Any entry can carry tags. They show as small outlined chips next to the date:
+
+```js
+tags: ['yosemite', 'private'],
+```
+
+They're also how the lock below decides what opens together.
+
+### Keeping an entry private
+
+Some things you want on the timeline without putting them in front of
+strangers. Open `writing/lock.html` in your browser — it isn't linked from
+anywhere and nobody will stumble onto it. Paste the writing in, choose a
+password, press **Lock it**, and it hands you a finished block to paste into
+`entries.js`.
+
+What you get has a `secret` where the `body` would normally be:
+
+```js
+{
+  date: '2026-10-22',
+  type: 'writing',
+  title: 'A title you don\'t mind people seeing',
+  tags: ['private'],
+  hint: 'Ask me for the password.',
+  bg: PALETTE.slate,
+  secret: '1$...a long scramble...',
+}
+```
+
+That scramble is the real thing, not a curtain over the text. The words are
+genuinely encrypted, so even though they sit in a public file on the internet,
+nobody can read them without the password — and the unlocking all happens in
+the reader's own browser. Nothing is sent anywhere, and there's no server to
+ask.
+
+A few things that follow from that:
+
+- **Nothing recovers a forgotten password.** Not you, not me, not GitHub.
+  Keep the original text somewhere safe.
+- **The date, title and tags stay public.** Only the writing is hidden. Title
+  it with that in mind.
+- **One password can cover several entries.** Unlocking one also opens every
+  other entry that shares a tag with it and uses the same password, and the
+  browser remembers it until the tab closes. So give everything behind the same
+  password the same tag.
+- `hint` is optional and prints above the password box. It defaults to
+  "Ask me for the password."
+
+### Where it was written
+
+Add a `place` and a small map appears above the entry:
+
+```js
+place: { name: 'El Capitan, Yosemite Valley', lat: 37.7340, lon: -119.6376, zoom: 11 },
+```
+
+To get the numbers: find the spot in Google Maps, right-click it, and the first
+thing in the menu is the two numbers — latitude then longitude, in that order.
+Click it to copy and paste it straight in.
+
+`zoom` is how close in it sits: `8` shows a region, `11` shows a valley, `14`
+shows a neighbourhood. `name` is the label printed underneath, and it's the
+only text a reader sees, so write it however you'd say it out loud.
+
+The map is a few image tiles from OpenStreetMap, which is free and needs no
+account. They're faded to match the page and don't load until you scroll near
+them. The small "© OpenStreetMap" credit is required by their licence, so
+please leave it there.
 
 ### Fonts
 
@@ -136,23 +258,63 @@ what the browser uses when the first font isn't installed. If you ever want a
 webfont, add its `<link>` to `writing/index.html` and put the family name first in
 `--font`; just know you're trading instant text for a network request.
 
-### Colours
+### Colours, and how the gradient works
 
-Each entry's `bg` is a stop in one tall gradient spanning the whole page, so
-every entry genuinely fades into the ones above and below it.
+You give each entry one colour. That's the whole of your side of it:
 
-`PALETTE` at the top of `entries.js` holds a Yosemite-ish set — granite and
-dust greys, dry grass, pine, sunset orange:
+```js
+bg: PALETTE.ember,      // or any hex code: bg: '#dda87e'
+```
+
+`PALETTE` at the top of `entries.js` is a named Yosemite-ish set, there so you
+can write `PALETTE.pine` instead of memorising `#b6c4b0`:
 
 | | | | | |
 | --- | --- | --- | --- | --- |
 | `clay` | `sand` | `ember` | `meadow` | `lichen` |
 | `pine` | `fog` | `slate` | `granite` | `taupe` |
 
-Any hex code works too, but keep new colours **muted** — they sit behind body
-text, and anything saturated fights it. Neighbouring entries read best a step
-or two apart rather than wildly different; the current order runs warm desert
-at the top through grass and forest to cold stone, finishing on a sunset.
+Any hex code works too. Add your own to `PALETTE` if you find one you like and
+want to reuse it.
+
+**What happens with it.** There's one single background behind the entire page
+— not a colour per section — and it's a vertical gradient with one stop per
+entry, in the order the entries appear. Once everything has been laid out, the
+page measures where the *middle* of each entry falls, turns that into a
+percentage of the total page height, and plants that entry's colour there.
+Roughly:
+
+```
+0%   ─ the hero's colour
+12%  ─ middle of the first entry  → its bg      ← measured, not guessed
+34%  ─ middle of the second entry → its bg
+58%  ─ middle of the third entry  → its bg
+...
+100% ─ the last entry's bg, held to the bottom
+```
+
+So each entry is at its own purest colour right in the middle of itself, and
+the halves either side of that are already on their way to its neighbours.
+
+The browser then does the actual blending, which is why nothing ever looks like
+it's switching: between any two entries you're looking at a continuous fade
+from one colour to the next, and the speed of that fade depends on how long the
+two entries are. A short entry gets a quick transition, a 7,000-word trip
+report gets a slow wash. Scroll position isn't involved at all — the gradient is
+painted once and held still while the page scrolls over it, so it's smooth even
+on a phone. It gets re-measured when the window resizes or when images finish
+loading and change the page's height.
+
+Two practical consequences:
+
+- **Order is what matters, not distance.** Two entries months apart but next to
+  each other in the list will blend directly into one another.
+- **Neighbours read best a step or two apart**, not wildly different. Big jumps
+  put a visible band between entries. The current order runs sunset orange on
+  El Cap, into dry grass, into pine, into cold shadow, finishing on valley haze.
+
+And keep new colours **muted**. They sit behind body text, and anything
+saturated fights it.
 
 ---
 
@@ -240,10 +402,13 @@ assets/                 the portfolio's photos and diagrams
 Gemfile                 only used if you ever build Jekyll locally
 
 writing/index.html              the notebook's page shell
+writing/lock.html               the tool for locking an entry behind a password
 writing/assets/css/style.css    all of the notebook's styling
 writing/assets/js/entries.js    >>> your writing lives here <<<
-writing/assets/js/app.js        dials, scrubber, gradient, deep links, lightbox
+writing/assets/js/music.js      your SoundCloud tracks, kept separate
+writing/assets/js/app.js        dials, scrubber, gradient, maps, locks, lightbox
 writing/assets/js/markdown.js   the small text formatter used by body text
+writing/assets/js/lock.js       the encrypting and decrypting
 writing/images/                 your photos for the notebook
 ```
 

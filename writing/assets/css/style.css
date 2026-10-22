@@ -9,7 +9,7 @@
   --paper:      rgba(252,250,246,.74);
   --paper-edge: rgba(253,252,250,.55);
   --hairline:   rgba(42,44,40,.16);
-  --rail-w:     232px;
+  --rail-w:     186px;
   --measure:    34rem;       /* comfortable reading width */
   --r-lg:       14px;
   --r-md:       9px;
@@ -171,20 +171,26 @@ a:hover{ text-decoration-color:currentColor }
 }
 .rail-body{
   display:flex; align-items:center;
-  gap:1.1rem;
-  width:100%;
+  gap:.75rem;
+  width:100%; height:100%;
 }
 
 /* ---------- SCRUBBER ----------
-   A tall thin track with a tick per entry and a dot you can grab to fly
-   through the whole archive. Taller than the dials on purpose: the extra
-   length is what makes it precise.
+   A time axis with a dot per entry standing off to one side of it, and a
+   handle you can drag to fly through the whole archive.
+
+   It runs off the very bottom of the screen — the deep past keeps going
+   below the fold — and dissolves at the top as it arrives at the day reel,
+   which reads out whatever you're on right now.
    -------------------------------------------------------------------- */
 
 .scrub{
+  --track-len:54vh;           /* top end lands just above the dial window */
+  --fade:66%;                 /* how far along the line starts dissolving */
   flex:none;
-  height:62vh;
-  padding:0 7px;              /* room for the handle to overhang the line */
+  align-self:flex-end;        /* anchored to the very bottom of the screen */
+  height:var(--track-len);
+  padding:0 7px 0 16px;       /* right: handle overhang.  left: the dots */
   display:flex; align-items:stretch;
   touch-action:none;          /* we handle the drag ourselves */
   user-select:none;
@@ -192,31 +198,64 @@ a:hover{ text-decoration-color:currentColor }
 .scrub-track{
   position:relative;
   width:2px;
-  border-radius:2px;
-  background:var(--hairline);
   cursor:pointer;
+  background:linear-gradient(to top,
+    var(--hairline) var(--fade), rgba(42,44,40,0) 97%);
 }
 /* Anchored at the bottom, the past end of the upright track, and grown
-   upwards to meet the handle. */
+   upwards to meet the handle.
+
+   The mask is sized to the whole track and pinned to that same bottom
+   edge, so the colour dissolves at a fixed point on the screen instead of
+   somewhere proportional to however long the fill happens to be. */
 .scrub-fill{
   position:absolute; left:0; bottom:0; width:100%;
   height:0;
-  border-radius:2px;
   background:var(--accent);
   opacity:.75;
+  -webkit-mask-image:linear-gradient(to top,#000 var(--fade),transparent 97%);
+          mask-image:linear-gradient(to top,#000 var(--fade),transparent 97%);
+  -webkit-mask-size:100% var(--track-len);
+          mask-size:100% var(--track-len);
+  -webkit-mask-position:left bottom;
+          mask-position:left bottom;
+  -webkit-mask-repeat:no-repeat;
+          mask-repeat:no-repeat;
 }
+
+/* one dot per entry, off to the left of the line */
 .scrub-ticks{ position:absolute; inset:0 }
 .scrub-ticks i{
-  position:absolute; left:50%;
-  width:7px; height:1px;
-  transform:translateX(-50%);
+  position:absolute;
+  right:calc(100% + 8px);
+  width:5px; height:5px;
+  transform:translateY(-50%);
+  border-radius:50%;
   background:var(--ink);
-  opacity:.3;
+  opacity:.26;
+  transition:width .22s var(--ease),height .22s var(--ease),
+             right .22s var(--ease),opacity .22s,box-shadow .22s;
 }
+.scrub-ticks i:hover{ opacity:.55 }
+.scrub-ticks.is-dense i{
+  right:calc(100% + 9px);
+  width:3px; height:3px;
+  opacity:.2;
+}
+/* the one you're reading. The paper-coloured halo keeps it legible
+   whatever colour the page has faded to behind it. */
+.scrub-ticks i.is-here{
+  right:calc(100% + 7px);
+  width:7px; height:7px;
+  opacity:1;
+  box-shadow:0 0 0 2.5px rgba(253,252,250,.7);
+}
+
 .scrub-handle{
   position:absolute; left:50%; top:0;
   width:13px; height:13px;
   margin:-6.5px 0 0 -6.5px;
+  z-index:4;                  /* its tooltip has to clear the dials */
   border-radius:50%;
   background:#fdfcfa;
   border:1.5px solid var(--ink);
@@ -247,8 +286,8 @@ a:hover{ text-decoration-color:currentColor }
 .scrub.is-dragging .scrub-handle::after{ opacity:1 }
 
 .dials{
-  --cell-h:30px;
-  --dial-h:150px;              /* 5 cells — kept compact */
+  --cell-h:26px;
+  --dial-h:130px;              /* 5 cells — kept compact */
   flex:1 1 auto; min-width:0;
   user-select:none;
 }
@@ -256,10 +295,10 @@ a:hover{ text-decoration-color:currentColor }
 .dial-caps{
   display:grid;
   grid-template-columns:1.25fr 1fr .8fr;
-  gap:.35rem;
-  margin:0 0 .55rem;
-  font-size:.55rem;
-  letter-spacing:.24em;
+  gap:.28rem;
+  margin:0 0 .4rem;
+  font-size:.5rem;
+  letter-spacing:.14em;
   text-transform:uppercase;
   color:var(--ink-soft);
   opacity:.5;
@@ -269,7 +308,7 @@ a:hover{ text-decoration-color:currentColor }
   position:relative;
   display:grid;
   grid-template-columns:1.25fr 1fr .8fr;
-  gap:.35rem;
+  gap:.28rem;
   height:var(--dial-h);
   border-top:1px solid var(--hairline);
   border-bottom:1px solid var(--hairline);
@@ -277,7 +316,7 @@ a:hover{ text-decoration-color:currentColor }
 
 /* the fixed readout slot the reels pass through */
 .dial-window{
-  position:absolute; left:-.45rem; right:-.45rem;
+  position:absolute; left:-.35rem; right:-.35rem;
   top:50%; height:var(--cell-h);
   transform:translateY(-50%);
   border-top:1px solid rgba(42,44,40,.4);
@@ -319,27 +358,27 @@ a:hover{ text-decoration-color:currentColor }
   display:flex; align-items:center;
   height:100%;
   width:100%;
-  padding-left:.4rem;
+  padding-left:.3rem;
   cursor:pointer;
   font-family:var(--font-mono);
   font-variant-numeric:tabular-nums lining-nums;
-  font-size:.8rem;
-  letter-spacing:.02em;
+  font-size:.72rem;
+  letter-spacing:.01em;
   color:var(--ink);
   white-space:nowrap;
   transition:color .3s;
 }
-.dial[data-unit="month"] .cell button{ font-size:.72rem; letter-spacing:.06em }
-.dial[data-unit="day"]   .cell button{ font-size:.76rem }
+.dial[data-unit="month"] .cell button{ font-size:.64rem; letter-spacing:.04em }
+.dial[data-unit="day"]   .cell button{ font-size:.68rem }
 
 /* opacity + scale are set per-frame by app.js to fake a cylinder */
 .cell.is-read button{ font-weight:700 }
 .cell button:hover{ color:#b06c34 }
 
 .dial-readout{
-  margin:.65rem 0 0;
-  font-size:.58rem;
-  letter-spacing:.18em;
+  margin:.5rem 0 0;
+  font-size:.54rem;
+  letter-spacing:.13em;
   text-transform:uppercase;
   color:var(--ink-soft);
   min-height:1.4em;
@@ -415,6 +454,131 @@ a:hover{ text-decoration-color:currentColor }
   margin:0 0 1.3rem;
   max-width:28ch;
 }
+
+.e-tag{
+  padding:.22rem .55rem;
+  border-radius:999px;
+  border:1px dashed rgba(42,44,40,.3);
+  font-size:.62rem; letter-spacing:.16em;
+  color:var(--ink-soft);
+}
+
+/* ---------- where it was written ----------
+   A few OpenStreetMap tiles laid out so the spot lands in the middle,
+   desaturated to sit inside the page's own palette.
+   ------------------------------------------ */
+
+.place{ margin:0 0 1.6rem }
+.place-map{
+  position:relative;
+  overflow:hidden;
+  border-radius:var(--r-md);
+  border:1px solid var(--paper-edge);
+  background:rgba(253,252,250,.45);
+  box-shadow:0 14px 34px -22px rgba(42,44,40,.42);
+}
+.place-tile{
+  position:absolute;
+  width:256px; height:256px;
+  filter:saturate(.32) contrast(.92) brightness(1.04);
+}
+.place-pin{
+  position:absolute; left:50%; top:50%;
+  width:11px; height:11px;
+  margin:-5.5px 0 0 -5.5px;
+  border-radius:50%;
+  background:#b06c34;
+  border:2px solid #fdfcfa;
+  box-shadow:0 2px 7px rgba(42,44,40,.45);
+}
+.place figcaption{
+  display:flex; align-items:baseline; gap:.6rem; flex-wrap:wrap;
+  margin-top:.5rem;
+  font-size:.66rem; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.place-credit{ color:inherit; opacity:.55; font-size:.58rem }
+.place-credit:hover{ opacity:1 }
+
+/* ---------- locked entries ---------- */
+
+.lock{
+  max-width:34rem;
+  padding:1.7rem 1.9rem;
+  border-radius:var(--r-lg);
+  background:var(--paper);
+  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+  border:1px dashed rgba(42,44,40,.32);
+  box-shadow:0 18px 50px -26px rgba(42,44,40,.3);
+}
+.lock-head{
+  margin:0 0 .4rem;
+  font-size:.72rem; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--ink-soft);
+}
+/* A padlock, drawn rather than typed. The characters that look like one are
+   all emoji, and this page doesn't use any. */
+.lock-icon{
+  display:inline-block; position:relative;
+  width:9px; height:7px;
+  margin-right:.55rem;
+  border-radius:1.5px;
+  background:currentColor;
+  vertical-align:-1px;
+}
+.lock-icon::before{
+  content:''; position:absolute;
+  left:1.5px; bottom:6px;
+  width:6px; height:4px;
+  border:1.5px solid currentColor; border-bottom:0;
+  border-radius:3px 3px 0 0;
+}
+.lock-note{ margin:0 0 1.1rem; font-size:.95rem; color:var(--ink-soft) }
+.lock-row{ display:flex; align-items:center; gap:.6rem; flex-wrap:wrap }
+.lock-label{
+  font-size:.6rem; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.lock-input{
+  flex:1 1 11rem; min-width:0;
+  font:inherit; font-size:.95rem;
+  padding:.5rem .7rem;
+  border-radius:8px;
+  border:1px solid var(--hairline);
+  background:rgba(253,252,250,.75);
+  color:var(--ink);
+}
+.lock-input:focus-visible{ outline:2px solid #b06c34; outline-offset:1px }
+.lock-go{
+  all:unset;
+  cursor:pointer;
+  padding:.5rem 1.1rem;
+  border-radius:999px;
+  background:var(--ink); color:#fdfcfa;
+  font-size:.7rem; letter-spacing:.16em; text-transform:uppercase;
+  transition:opacity .2s;
+}
+.lock-go:hover{ opacity:.82 }
+.lock-go[disabled]{ opacity:.5; cursor:default }
+.lock-error:empty{ display:none }
+.lock-error{
+  margin:.8rem 0 0;
+  font-size:.8rem;
+  color:#8a3b2a;
+}
+
+/* credit line for anything that first appeared somewhere else */
+.e-source{
+  max-width:var(--measure);
+  margin:.9rem 0 0;
+  font-size:.68rem;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  opacity:.65;
+}
+.e-source a{ color:inherit; text-decoration-thickness:1px }
+.e-source a:hover{ color:var(--ink); opacity:1 }
 
 /* ---------- prose ---------- */
 
@@ -500,6 +664,25 @@ figure.shot figcaption{
 .gallery.cols-3 figure.shot img{ aspect-ratio:4/5 }
 .gallery.cols-1 figure.shot img{ aspect-ratio:3/2 }
 
+/* Photos written inline in a piece of writing. These keep whatever shape
+   they were shot in rather than being cropped to match each other: a trip
+   report mixes portrait and landscape and the crop would cut the tops off
+   the walls. */
+.gallery.inline-shots{ gap:.9rem; margin:1.7rem 0 }
+/* A placeholder box until the file lands and we know its real shape,
+   otherwise a lazy photo has no height at all and the writing below it
+   jumps up the page as you scroll towards it. */
+.gallery.inline-shots figure.shot img{
+  aspect-ratio:4/3;
+  height:auto;
+  object-fit:contain;
+}
+.gallery.inline-shots figure.shot img.is-loaded{ aspect-ratio:auto }
+.gallery.inline-shots figure.shot{ align-self:start }
+.gallery.inline-shots figure.shot figcaption{ font-size:.72rem }
+/* inside the prose card they shouldn't fight the text's own max width */
+.prose .gallery.inline-shots.cols-1{ max-width:100% }
+
 /* side-by-side photo essay */
 .essay{
   display:grid;
@@ -567,6 +750,19 @@ figure.shot figcaption{
   transition:transform .4s var(--ease);
 }
 .music-card:hover{ transform:translateY(-4px) }
+/* the SoundCloud cards are buttons, since they swap themselves for a
+   player rather than navigating anywhere */
+button.music-card{
+  font:inherit; color:inherit;
+  width:100%; text-align:left;
+  cursor:pointer;
+}
+.music-card .mc-art,
+.music-card .mc-track,
+.music-card .mc-artist,
+.music-card .mc-cta{ display:block }
+/* SoundCloud's compact player is a lot shorter than Spotify's */
+.sc-embed{ height:166px; box-shadow:0 14px 34px -22px rgba(42,44,40,.4) }
 /* a sleeve-and-record stand-in, drawn in CSS so there's no asset to manage */
 .music-card .mc-art{
   aspect-ratio:1; border-radius:12px; margin-bottom:1rem;
@@ -704,11 +900,13 @@ figure.shot figcaption{
    ============================================================ */
 
 @media (max-width:1040px){
-  :root{ --rail-w:176px }
-  .rail-body{ gap:.7rem }
-  .scrub{ height:54vh }
-  .dials{ --cell-h:27px; --dial-h:135px }
-  .cell button{ font-size:.78rem; padding-left:.25rem }
+  :root{ --rail-w:162px }
+  .rail-body{ gap:.55rem }
+  .scrub{ --track-len:50vh }
+  .dials{ --cell-h:23px; --dial-h:115px }
+  .cell button{ font-size:.68rem; padding-left:.2rem }
+  .dial[data-unit="month"] .cell button{ font-size:.6rem }
+  .dial[data-unit="day"]   .cell button{ font-size:.64rem }
   .dial-readout{ display:none }
   .essay,.music{ grid-template-columns:1fr; gap:1.8rem }
   .essay.flip .gallery{ order:0 }
@@ -740,18 +938,38 @@ figure.shot figcaption{
   }
   .scrub{
     order:2;
+    /* the rail spans the full viewport, inset 6vw either side */
+    --track-len:88vw;
+    align-self:auto;
     height:auto; width:100%;
     padding:6px 0;
     align-items:center;
   }
-  .scrub-track{ width:100%; height:2px }
-  /* lying flat the past end is the left, which is where it was anchored
-     already, so the fill just grows sideways instead */
-  .scrub-fill{ height:100%; width:0 }
+  /* lying flat, the present end is the right-hand one, so everything that
+     ran bottom-to-top now runs left-to-right */
+  .scrub-track{
+    width:100%; height:2px;
+    background:linear-gradient(to right,
+      var(--hairline) var(--fade), rgba(42,44,40,0) 97%);
+  }
+  .scrub-fill{
+    height:100%; width:0;
+    -webkit-mask-image:linear-gradient(to right,#000 var(--fade),transparent 97%);
+            mask-image:linear-gradient(to right,#000 var(--fade),transparent 97%);
+    -webkit-mask-size:var(--track-len) 100%;
+            mask-size:var(--track-len) 100%;
+    -webkit-mask-position:left bottom;
+            mask-position:left bottom;
+  }
+  /* the dots drop below the line rather than sitting beside it */
   .scrub-ticks i{
-    width:1px; height:7px;
-    top:50%; left:auto;
-    transform:translateY(-50%);
+    top:calc(100% + 3px);
+    right:auto;
+    transform:translateX(-50%);
+  }
+  .scrub-ticks i.is-here{
+    top:calc(100% + 2px);
+    right:auto;
   }
   .scrub-handle{ top:50%; left:0 }
   .scrub-handle::after{
