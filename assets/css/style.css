@@ -196,8 +196,10 @@ a:hover{ text-decoration-color:currentColor }
   background:var(--hairline);
   cursor:pointer;
 }
+/* Anchored at the bottom, the past end of the upright track, and grown
+   upwards to meet the handle. */
 .scrub-fill{
-  position:absolute; left:0; top:0; width:100%;
+  position:absolute; left:0; bottom:0; width:100%;
   height:0;
   border-radius:2px;
   background:var(--accent);
@@ -743,6 +745,8 @@ figure.shot figcaption{
     align-items:center;
   }
   .scrub-track{ width:100%; height:2px }
+  /* lying flat the past end is the left, which is where it was anchored
+     already, so the fill just grows sideways instead */
   .scrub-fill{ height:100%; width:0 }
   .scrub-ticks i{
     width:1px; height:7px;

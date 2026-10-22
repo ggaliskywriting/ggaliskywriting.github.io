@@ -6,7 +6,13 @@ on one continuous colour wash.
 Down the left side is a timeline built from two parts: three dials that read
 out the year, month and day of whatever you're looking at, and a scrub track
 with a tick per entry and a dot you can grab to fly through the whole archive.
-Arrow keys step through entries one at a time when the dot has focus.
+
+The track reads as a time axis running from the past towards the present —
+bottom to top on a computer, left to right once it lies flat on a phone — so
+moving the dot up or right always takes you towards the newest entry. The
+coloured part of the line is the stretch of archive older than wherever you're
+reading. When the dot has focus, the arrow keys step one entry at a time in
+the same directions, and Home and End jump to the oldest and newest.
 
 There is **no build step and no dependencies**. It's three files of plain
 HTML, CSS and JavaScript. Nothing to install, nothing to update, nothing that

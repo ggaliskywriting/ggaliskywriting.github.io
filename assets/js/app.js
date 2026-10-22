@@ -50,8 +50,13 @@
 
   let entries   = [];   // { data, el, slug }
   let visible   = [];   // subset currently shown
-  let activeIdx = -1;
+  let activeIdx = -1;   // -1 while we're up in the hero with nothing to point at
   let filter    = 'all';
+
+  /* Set when something has moved the page behind the scroll-spy's back, so
+     that the next pass rewrites the address bar even if it lands on the
+     entry it already thought we were on. */
+  let activeStale = false;
 
   /* while a jump is animating we still move the dials, but we stop the
      scroll-spy from rewriting the address bar — otherwise the hash flickers
@@ -415,8 +420,9 @@
   }
 
   function setActive(idx) {
-    if (idx === activeIdx) return;
+    if (idx === activeIdx && !activeStale) return;
     activeIdx = idx;
+    activeStale = false;
 
     if (readout) {
       if (idx >= 0) {
@@ -442,8 +448,13 @@
   /* ======================================================================
      THE SCRUBBER
      A tick per entry on a tall thin track, plus a handle you can drag to
-     fly through the whole archive. Position maps to raw scroll progress so
-     dragging feels exactly like scrolling, only faster.
+     fly through the whole archive.
+
+     The track reads as a time axis running from the past to the present:
+     bottom to top while it's upright beside the dials, left to right once
+     it lies flat on a phone. The coloured part of the line is the stretch of
+     archive older than wherever you're reading, so it shrinks back towards
+     the past end as you scroll down into older entries.
      ====================================================================== */
 
   const scrub = {
@@ -458,33 +469,49 @@
   const maxScroll = () => Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
   const isHorizontal = () => window.matchMedia('(max-width: 720px)').matches;
 
+  /* Where a point on the page falls along the time axis, 0 at the oldest
+     entry and 100 at the newest. The newest entry is at the top of the
+     document, so this is simply scroll progress read backwards. */
+  function onAxis(scrollY) {
+    return 100 - clamp((scrollY / maxScroll()) * 100, 0, 100);
+  }
+
   function buildTicks() {
     if (!scrub.ticks) return;
-    const max = maxScroll();
+    const flat = isHorizontal();
     scrub.ticks.innerHTML = visible.map(function (item) {
-      const r = item.el.getBoundingClientRect();
-      const at = clamp(((r.top + window.scrollY) / max) * 100, 0, 100);
-      return '<i style="' + (isHorizontal() ? 'left' : 'top') + ':' + at.toFixed(2) + '%"></i>';
+      const r  = item.el.getBoundingClientRect();
+      const at = onAxis(r.top + window.scrollY);
+      /* CSS offsets are measured from the top and the left, which are
+         opposite ends of the axis: the past is at the bottom of the upright
+         track but at the left of the flat one. */
+      return flat
+        ? '<i style="left:' + at.toFixed(2) + '%"></i>'
+        : '<i style="top:'  + (100 - at).toFixed(2) + '%"></i>';
     }).join('');
   }
 
   /* reflect the current scroll position in the handle */
   function paintScrub() {
     if (!scrub.handle) return;
-    const pct = clamp((window.scrollY / maxScroll()) * 100, 0, 100);
+    const at = onAxis(window.scrollY);
     if (isHorizontal()) {
-      scrub.handle.style.left = pct.toFixed(2) + '%';
+      scrub.handle.style.left = at.toFixed(2) + '%';
       scrub.handle.style.top = '';
-      if (scrub.fill) { scrub.fill.style.width = pct.toFixed(2) + '%'; scrub.fill.style.height = ''; }
+      if (scrub.fill) { scrub.fill.style.width = at.toFixed(2) + '%'; scrub.fill.style.height = ''; }
     } else {
-      scrub.handle.style.top = pct.toFixed(2) + '%';
+      scrub.handle.style.top = (100 - at).toFixed(2) + '%';
       scrub.handle.style.left = '';
-      if (scrub.fill) { scrub.fill.style.height = pct.toFixed(2) + '%'; scrub.fill.style.width = ''; }
+      if (scrub.fill) { scrub.fill.style.height = at.toFixed(2) + '%'; scrub.fill.style.width = ''; }
     }
-    scrub.handle.setAttribute('aria-valuenow', Math.round(pct));
+    scrub.handle.setAttribute('aria-valuenow', Math.round(at));
 
-    if (activeIdx >= 0) {
-      const d = parseDate(visible[activeIdx].data.date);
+    /* Label the handle with whatever entry sits at this point on the axis
+       rather than with the active one, which is blank up in the hero and
+       would leave a stale date sitting under the thumb. */
+    if (visible.length) {
+      const near = clamp(Math.round(progressAt(window.scrollY)), 0, visible.length - 1);
+      const d = parseDate(visible[near].data.date);
       const label = d.bad ? '' : MONTHS[d.m - 1] + ' ' + d.d + ', ' + d.y;
       scrub.handle.dataset.label = label;
       scrub.handle.setAttribute('aria-valuetext', label);
@@ -496,9 +523,11 @@
      and the handle would swim away from the pointer instead of tracking it. */
   function scrubTo(ev) {
     const r = scrub.track.getBoundingClientRect();
+    /* flat: dragging right moves towards the present, which is the top of
+       the document, so the scroll fraction runs the other way */
     const frac = isHorizontal()
-      ? (ev.clientX - r.left) / (r.width  || 1)
-      : (ev.clientY - r.top)  / (r.height || 1);
+      ? 1 - (ev.clientX - r.left) / (r.width || 1)
+      : (ev.clientY - r.top) / (r.height || 1);
     window.scrollTo({ top: clamp(frac, 0, 1) * maxScroll(), behavior: 'instant' });
   }
 
@@ -526,24 +555,30 @@
       if (ev && ev.pointerId != null && scrub.track.hasPointerCapture(ev.pointerId)) {
         scrub.track.releasePointerCapture(ev.pointerId);
       }
-      activeIdx = -1;        // force the hash to be rewritten for where we landed
+      /* The address bar was frozen for the whole drag, so whatever it says
+         is about where we grabbed the handle, not where we let go. */
+      activeStale = true;
       update();
     }
     scrub.track.addEventListener('pointerup', endDrag);
     scrub.track.addEventListener('pointercancel', endDrag);
     scrub.track.addEventListener('lostpointercapture', endDrag);
 
-    /* keyboard: arrows step an entry at a time, Home/End jump to the ends */
+    /* Keyboard, read against the axis rather than the page: up and right go
+       towards the present, down and left towards the past, and Home/End sit
+       at the oldest and newest ends. Because the feed is newest first, going
+       newer means stepping backwards through it. */
     scrub.handle.addEventListener('keydown', function (ev) {
-      const back = ev.key === 'ArrowUp' || ev.key === 'ArrowLeft';
-      const fwd  = ev.key === 'ArrowDown' || ev.key === 'ArrowRight';
-      if (!back && !fwd && ev.key !== 'Home' && ev.key !== 'End') return;
+      const newer = ev.key === 'ArrowUp'   || ev.key === 'ArrowRight';
+      const older = ev.key === 'ArrowDown' || ev.key === 'ArrowLeft';
+      if (!newer && !older && ev.key !== 'Home' && ev.key !== 'End') return;
       ev.preventDefault();
       if (!visible.length) return;
 
-      let idx = ev.key === 'Home' ? 0
-              : ev.key === 'End'  ? visible.length - 1
-              : clamp((activeIdx < 0 ? 0 : activeIdx) + (fwd ? 1 : -1), 0, visible.length - 1);
+      const oldest = visible.length - 1;
+      const idx = ev.key === 'Home' ? oldest
+                : ev.key === 'End'  ? 0
+                : clamp((activeIdx < 0 ? 0 : activeIdx) + (newer ? -1 : 1), 0, oldest);
       jumpTo(visible[idx].slug, true);
     });
   }
@@ -553,6 +588,12 @@
      ====================================================================== */
 
   function paintBackdrop() {
+    /* Collapse the layer before measuring. It's absolutely positioned, so its
+       own height counts towards scrollHeight, and measuring around it would
+       let the page only ever grow: filter the feed down to two entries, or
+       turn a phone on its side, and the old height would survive as dead
+       space at the bottom with the timeline stranded above it. */
+    backdrop.style.height = '0px';
     const docH = Math.max(
       document.documentElement.scrollHeight,
       document.body.scrollHeight
@@ -808,7 +849,10 @@
     });
 
     visible = entries.filter(function (i) { return i.el.style.display !== 'none'; });
+    /* indices mean something different now, and the entry the address bar
+       names may not even be on the page any more */
     activeIdx = -1;
+    activeStale = true;
     shownP = 0; targetP = 0;
     buildDials();
     layoutDials(0);
