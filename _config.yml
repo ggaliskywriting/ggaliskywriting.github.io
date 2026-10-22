@@ -90,6 +90,16 @@ defaults:
       layout: single
       author_profile: true
 
+  # The notebook is hand-written HTML with no Liquid in it, so Jekyll copies
+  # it across untouched. This keeps it out of sitemap.xml from here, rather
+  # than with a front-matter block in each file — a block at the top of a
+  # plain .html file shows up as stray text when you open it locally without
+  # Jekyll running.
+  - scope:
+      path: "writing"
+    values:
+      sitemap: false
+
 category_archive:
   type: liquid
   path: /categories/

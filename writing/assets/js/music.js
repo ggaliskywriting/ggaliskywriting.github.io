@@ -8,6 +8,9 @@
 
      date   when it went up on SoundCloud
      id     the SoundCloud track id — this is what the player loads
+     c      optional. The page colour for this track, taken from its cover
+            art — see the note below. Leave it off and the track takes its
+            year's tone instead.
      slug   the end of its soundcloud.com address, used for the #link here
      len    how long it runs, just for the card
      title  the track name
@@ -20,8 +23,21 @@
 
 (function () {
 
-  /* One tone per year, so the run of music reads as eras rather than
-     flickering colour by colour as you scroll through it. */
+  /* ── Where the colours come from ──────────────────────────────────────
+     A track that has cover art on SoundCloud carries its own `c`, read off
+     that image: the colour the cover actually reads as, then pulled into
+     the muted range the rest of the page lives in so it can sit behind
+     text. The underwater kelp track comes out green, the sunset one comes
+     out warm, the one with red lettering comes out dusty pink.
+
+     Fifty of these have no cover art, so there's nothing to read, and they
+     fall back to one tone per year below. That's deliberate: if they all
+     took the colour of your profile picture instead they'd wash half the
+     page in the same teal and drown out the covers that do mean something.
+
+     Put art on a track on SoundCloud and tell me, and I'll pull its colour
+     in the same way.
+     ──────────────────────────────────────────────────────────────────── */
   const TONE = {
     2025: '#c7d0bb',   // lichen
     2023: '#d2d8d5',   // fog
@@ -32,17 +48,17 @@
   const FALLBACK = '#d6d4ce';
 
   const TRACKS = [
-  { date: '2025-06-10', id: 2110981737, len: '1:12', slug: 'an-adventure-complete',
+  { date: '2025-06-10', id: 2110981737, c: '#b0b4bd', len: '1:12', slug: 'an-adventure-complete',
     title: 'An Adventure Complete' },
-  { date: '2023-05-01', id: 1504220764, len: '1:27', slug: 'a-journeys-end',
+  { date: '2023-05-01', id: 1504220764, c: '#aab7c3', len: '1:27', slug: 'a-journeys-end',
     title: 'A journey\'s end' },
-  { date: '2023-05-01', id: 1504219996, len: '1:04', slug: 'they-are-ephemeral-flowers',
+  { date: '2023-05-01', id: 1504219996, c: '#cbc8ba', len: '1:04', slug: 'they-are-ephemeral-flowers',
     title: 'They are ephemeral flowers' },
-  { date: '2023-04-02', id: 1483387522, len: '2:02', slug: 'a-journeya',
+  { date: '2023-04-02', id: 1483387522, c: '#bfbeb4', len: '2:02', slug: 'a-journeya',
     title: 'A Journey' },
-  { date: '2023-04-02', id: 1483386697, len: '1:12', slug: 'ocean-cliffs-central-california',
+  { date: '2023-04-02', id: 1483386697, c: '#b7c6d6', len: '1:12', slug: 'ocean-cliffs-central-california',
     title: 'Ocean Cliffs - Central California' },
-  { date: '2023-01-09', id: 1419592711, len: '1:42', slug: 'kelp-depths',
+  { date: '2023-01-09', id: 1419592711, c: '#9cd0c7', len: '1:42', slug: 'kelp-depths',
     title: 'Kelp Depths',
     note: 'Inspired by the cold kelp forests of Northern California and the music from the documentary "Forest in the Sea" (1983)' },
   { date: '2022-09-26', id: 1350920299, len: '0:58', slug: 'forgoten-place',
@@ -53,12 +69,12 @@
     title: 'Travel To Distant Worlds' },
   { date: '2022-07-28', id: 1313251921, len: '1:17', slug: 'the-future',
     title: 'The Future' },
-  { date: '2022-07-24', id: 1310754775, len: '1:14', slug: 'daisy',
+  { date: '2022-07-24', id: 1310754775, c: '#d4a4ab', len: '1:14', slug: 'daisy',
     title: 'Daisy' },
-  { date: '2022-07-17', id: 1306622248, len: '1:13', slug: 'el5e',
+  { date: '2022-07-17', id: 1306622248, c: '#d2cec8', len: '1:13', slug: 'el5e',
     title: 'EL5E',
     note: 'Made on OP-1 Field, inspired by ELSE on Rainworld sountrack' },
-  { date: '2022-02-04', id: 1210043971, len: '0:28', slug: 'green-hills',
+  { date: '2022-02-04', id: 1210043971, c: '#d5ccc0', len: '0:28', slug: 'green-hills',
     title: 'Green Hills' },
   { date: '2022-01-09', id: 1193273122, len: '0:13', slug: 'skyislands',
     title: 'Skyislands' },
@@ -101,13 +117,13 @@
   { date: '2021-02-27', id: 994261084, len: '1:11', slug: 'may-20th-2018-pismo-beach',
     title: 'May 20th 2018, Pismo Beach',
     note: 'A different time. Never to be repeated. Not for a lack of trying. Goodbye always.' },
-  { date: '2021-02-24', id: 992063926, len: '5:00', slug: 'martian-plains',
+  { date: '2021-02-24', id: 992063926, c: '#c3bcb4', len: '5:00', slug: 'martian-plains',
     title: 'Martian Planes' },
-  { date: '2021-02-24', id: 992055826, len: '3:00', slug: 'percy',
+  { date: '2021-02-24', id: 992055826, c: '#c3bcb6', len: '3:00', slug: 'percy',
     title: 'Percy' },
-  { date: '2021-02-24', id: 991676203, len: '33:17', slug: 'coastline',
+  { date: '2021-02-24', id: 991676203, c: '#c9c9c6', len: '33:17', slug: 'coastline',
     title: 'Coastline' },
-  { date: '2021-02-13', id: 984660088, len: '1:24', slug: 'im-tired',
+  { date: '2021-02-13', id: 984660088, c: '#bebab4', len: '1:24', slug: 'im-tired',
     title: 'Im Tired' },
   { date: '2021-01-29', id: 975310132, len: '1:28', slug: 'after-the-door',
     title: 'After The Door',
@@ -156,13 +172,13 @@
     title: 'Travel' },
   { date: '2020-06-09', id: 836690644, len: '0:15', slug: 'weird-forest-video-game-music-synth-meme',
     title: 'Weird Forest Video Game Music Synth Meme' },
-  { date: '2020-05-26', id: 828339940, len: '0:37', slug: 'i-dont-sleep-anymore-because-of-quarntine-help-tyrel-records-coastline-depression-studio-track-4',
+  { date: '2020-05-26', id: 828339940, c: '#bacedd', len: '0:37', slug: 'i-dont-sleep-anymore-because-of-quarntine-help-tyrel-records-coastline-depression-studio-track-4',
     title: 'I Dont Sleep Anymore Because Of Quarntine Help (Tyrel Records Coastline Depression Studio Track 4)' },
-  { date: '2020-05-26', id: 828332686, len: '0:28', slug: 'desk-lamp-limted-edition-bootleg-clip-never-before-released-1984-coastline-impression-tyrell-records-tm',
+  { date: '2020-05-26', id: 828332686, c: '#c0dfe1', len: '0:28', slug: 'desk-lamp-limted-edition-bootleg-clip-never-before-released-1984-coastline-impression-tyrell-records-tm',
     title: 'Desk Lamp Limted Edition Bootleg Clip (never Before Released) Tyrell Records TM' },
-  { date: '2020-05-25', id: 827544544, len: '1:22', slug: 'the-best-i-can-do-right-now-interlude-coastline-depression-tm-copyright-1982-ce',
+  { date: '2020-05-25', id: 827544544, c: '#bfdfe1', len: '1:22', slug: 'the-best-i-can-do-right-now-interlude-coastline-depression-tm-copyright-1982-ce',
     title: 'The Best I Can Do Right Now (Interlude) Coastline Depression TM Copyright 1982 CE' },
-  { date: '2020-05-22', id: 825789643, len: '0:19', slug: 'when-you-see-me',
+  { date: '2020-05-22', id: 825789643, c: '#d9c7b4', len: '0:19', slug: 'when-you-see-me',
     title: 'When You See Me',
     note: 'Big sad, but kinda hopeful but still mega depressed.' },
   { date: '2020-05-19', id: 823554208, len: '2:38', slug: 'untiled-1',
@@ -171,29 +187,29 @@
     title: 'Brass Anxiety Movie Track Sounding Thing' },
   { date: '2020-05-17', id: 822102934, len: '2:08', slug: 'the-struggle',
     title: 'The Struggle' },
-  { date: '2020-05-10', id: 817378474, len: '0:16', slug: 'drums-and-synth-meme',
+  { date: '2020-05-10', id: 817378474, c: '#ccdad6', len: '0:16', slug: 'drums-and-synth-meme',
     title: 'Drums And Synth Meme' },
-  { date: '2020-05-08', id: 816147550, len: '3:06', slug: 'dont-be-too-hard-on-yourself',
+  { date: '2020-05-08', id: 816147550, c: '#b2b3bd', len: '3:06', slug: 'dont-be-too-hard-on-yourself',
     title: 'Don\'t Be Too Hard On Yourself [In progress]' },
-  { date: '2020-05-04', id: 813573913, len: '1:55', slug: 'happy-dissonance-intro-demo',
+  { date: '2020-05-04', id: 813573913, c: '#cbc9c5', len: '1:55', slug: 'happy-dissonance-intro-demo',
     title: 'Happy Dissonance Intro [Demo]',
     note: 'More stuff with the korg prologue. Just messin around' },
-  { date: '2020-05-02', id: 812297035, len: '1:41', slug: 'the-moment',
+  { date: '2020-05-02', id: 812297035, c: '#adb3c1', len: '1:41', slug: 'the-moment',
     title: 'The Moment - messing around with korg prologue' },
-  { date: '2020-04-20', id: 802805098, len: '0:22', slug: 'nothing-special',
+  { date: '2020-04-20', id: 802805098, c: '#d6d3d0', len: '0:22', slug: 'nothing-special',
     title: 'Anxious Chill' },
-  { date: '2020-04-10', id: 794997400, len: '1:20', slug: 'rainy-beach-days-demo',
+  { date: '2020-04-10', id: 794997400, c: '#b2d3db', len: '1:20', slug: 'rainy-beach-days-demo',
     title: 'Rainy Beach Days Demo' },
-  { date: '2020-04-09', id: 794892664, len: '0:52', slug: 'super-ch1ll-juno-60-demo',
+  { date: '2020-04-09', id: 794892664, c: '#bbb7b1', len: '0:52', slug: 'super-ch1ll-juno-60-demo',
     title: 'SUPER CH1LL Juno 60 Demo' },
-  { date: '2020-04-05', id: 791178553, len: '1:32', slug: 'synth-test',
+  { date: '2020-04-05', id: 791178553, c: '#e1c0cb', len: '1:32', slug: 'synth-test',
     title: 'Synth Test',
     note: 'finally got around to trying another synth' },
-  { date: '2020-03-29', id: 785757874, len: '0:19', slug: 'tancony-test',
+  { date: '2020-03-29', id: 785757874, c: '#adbcc9', len: '0:19', slug: 'tancony-test',
     title: 'TANCony Test' },
-  { date: '2020-03-29', id: 785757757, len: '0:38', slug: 'try-again-test',
+  { date: '2020-03-29', id: 785757757, c: '#d0ccc9', len: '0:38', slug: 'try-again-test',
     title: 'Try Again Test' },
-  { date: '2020-03-18', id: 778619986, len: '1:41', slug: 'test',
+  { date: '2020-03-18', id: 778619986, c: '#bfbab5', len: '1:41', slug: 'test',
     title: 'Test' },
   ];
 
@@ -203,7 +219,7 @@
       type:  'music',
       title: t.title,
       slug:  'track-' + t.slug,
-      bg:    TONE[t.date.slice(0, 4)] || FALLBACK,
+      bg:    t.c || TONE[t.date.slice(0, 4)] || FALLBACK,
       track:  t.title,
       artist: 'Coastline Impression',
       length: t.len,
