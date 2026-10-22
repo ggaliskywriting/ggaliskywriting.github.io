@@ -87,6 +87,25 @@ in. Tracks, albums, playlists and podcast episodes all work.
 Leave `spotify` out and supply `track`, `artist` and `link` instead to get a
 simple card with no embedded player.
 
+### Fonts
+
+Everything is set in plain Helvetica (Arial on Windows, Liberation Sans on
+Linux), with the timeline dials in the system monospace so they read like
+instrument numerals. No webfonts are downloaded, so text appears immediately
+and the page works with no network at all.
+
+To change it, edit the two variables at the top of `assets/css/style.css`:
+
+```css
+--font:      "Helvetica Neue",Helvetica,Arial,"Liberation Sans",sans-serif;
+--font-mono: ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+```
+
+Always keep a few fallbacks after your choice, separated by commas — that's
+what the browser uses when the first font isn't installed. If you ever want a
+webfont, add its `<link>` to `index.html` and put the family name first in
+`--font`; just know you're trading instant text for a network request.
+
 ### Colours
 
 Each entry's `bg` is a stop in one tall gradient spanning the whole page, so

@@ -17,6 +17,14 @@
 
   /* moss -> burnt orange -> slate: used for the few accents on the page */
   --accent:     linear-gradient(145deg,#6f7d5e,#b06c34 52%,#5a6a70);
+
+  /* Plain grotesque, loaded from the machine rather than the network, so
+     there are no webfont requests and nothing to load before text appears.
+     Helvetica on Macs, Arial on Windows, Liberation Sans on Linux — all
+     metrically close enough that the layout doesn't shift between them. */
+  --font:      "Helvetica Neue",Helvetica,Arial,"Liberation Sans",sans-serif;
+  /* the dials read as instrument numerals */
+  --font-mono: ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
 }
 
 *,*::before,*::after{ box-sizing:border-box }
@@ -28,12 +36,14 @@ html{
 
 body{
   margin:0;
-  font-family:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;
+  font-family:var(--font);
   font-weight:400;
   color:var(--ink);
   background:#e6e2dc;              /* fallback before JS paints */
   line-height:1.65;
   overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
 }
 
 img{ max-width:100%; display:block }
@@ -112,16 +122,14 @@ a:hover{ text-decoration-color:currentColor }
   color:var(--ink-soft); margin:0 0 1.6rem;
 }
 .hero-title{
-  font-family:Fraunces,Georgia,serif;
-  font-weight:300;
-  font-size:clamp(3.4rem,13vw,9.5rem);
-  line-height:.88;
-  letter-spacing:-.03em;
+  font-weight:700;
+  font-size:clamp(3.2rem,12.5vw,9rem);
+  line-height:.9;
+  letter-spacing:-.045em;
   margin:0 0 1.8rem;
 }
 .hero-title em{
-  font-style:italic;
-  font-weight:500;
+  font-style:normal;              /* the gradient does the differentiating */
   display:inline-block;
   background:var(--accent);
   -webkit-background-clip:text; background-clip:text;
@@ -311,15 +319,16 @@ a:hover{ text-decoration-color:currentColor }
   width:100%;
   padding-left:.4rem;
   cursor:pointer;
+  font-family:var(--font-mono);
   font-variant-numeric:tabular-nums lining-nums;
-  font-size:.86rem;
-  letter-spacing:.06em;
+  font-size:.8rem;
+  letter-spacing:.02em;
   color:var(--ink);
   white-space:nowrap;
   transition:color .3s;
 }
-.dial[data-unit="month"] .cell button{ font-size:.76rem; letter-spacing:.12em }
-.dial[data-unit="day"]   .cell button{ font-size:.8rem }
+.dial[data-unit="month"] .cell button{ font-size:.72rem; letter-spacing:.06em }
+.dial[data-unit="day"]   .cell button{ font-size:.76rem }
 
 /* opacity + scale are set per-frame by app.js to fake a cylinder */
 .cell.is-read button{ font-weight:700 }
@@ -397,11 +406,10 @@ a:hover{ text-decoration-color:currentColor }
 .e-link:hover{ opacity:1; transform:rotate(-12deg) scale(1.12); background:rgba(253,252,250,.5) }
 
 .e-title{
-  font-family:Fraunces,Georgia,serif;
-  font-weight:500;
-  font-size:clamp(1.9rem,4.4vw,3.4rem);
-  line-height:1.06;
-  letter-spacing:-.02em;
+  font-weight:700;
+  font-size:clamp(1.75rem,4vw,3rem);
+  line-height:1.08;
+  letter-spacing:-.034em;
   margin:0 0 1.3rem;
   max-width:28ch;
 }
@@ -410,7 +418,8 @@ a:hover{ text-decoration-color:currentColor }
 
 .prose{
   max-width:var(--measure);
-  font-size:1.07rem;
+  font-size:1.04rem;
+  line-height:1.72;
   background:var(--paper);
   -webkit-backdrop-filter:blur(10px);
           backdrop-filter:blur(10px);
@@ -423,19 +432,20 @@ a:hover{ text-decoration-color:currentColor }
 .prose > :last-child{ margin-bottom:0 }
 .prose p{ margin:0 0 1.15em }
 .prose h3,.prose h4,.prose h5{
-  font-family:Fraunces,Georgia,serif; font-weight:500;
-  line-height:1.2; margin:1.9em 0 .6em;
+  font-weight:700;
+  line-height:1.22; margin:1.9em 0 .55em;
+  letter-spacing:-.018em;
 }
-.prose h3{ font-size:1.5rem }
-.prose h4{ font-size:1.18rem }
-.prose h5{ font-size:1.02rem; letter-spacing:.02em }
+.prose h3{ font-size:1.35rem }
+.prose h4{ font-size:1.1rem }
+.prose h5{ font-size:.95rem; letter-spacing:.02em; text-transform:uppercase }
 .prose ul,.prose ol{ margin:0 0 1.15em; padding-left:1.3em }
 .prose li{ margin:.3em 0 }
 .prose blockquote{
-  margin:1.5em 0;
-  padding:.2em 0 .2em 1.3em;
-  border-left:3px solid rgba(42,44,40,.22);
-  font-family:Fraunces,Georgia,serif; font-style:italic;
+  margin:1.6em 0;
+  padding:.1em 0 .1em 1.2em;
+  border-left:2px solid rgba(42,44,40,.3);
+  font-size:1.05em;
   color:var(--ink-soft);
 }
 .prose hr{
@@ -447,9 +457,9 @@ a:hover{ text-decoration-color:currentColor }
   background:rgba(42,44,40,.08);
 }
 .prose .dropcap::first-letter{
-  font-family:Fraunces,Georgia,serif;
-  font-size:3.4em; font-weight:500; line-height:.82;
-  float:left; margin:.07em .09em 0 0;
+  font-size:3.1em; font-weight:700; line-height:.78;
+  letter-spacing:-.04em;
+  float:left; margin:.1em .1em 0 0;
   color:var(--ink);
 }
 
@@ -480,7 +490,8 @@ figure.shot:hover{ transform:rotate(0deg) scale(1.015); z-index:2 }
 figure.shot:hover img{ box-shadow:0 30px 60px -18px rgba(42,44,40,.5) }
 figure.shot figcaption{
   margin-top:.65rem;
-  font-size:.8rem; font-style:italic;
+  font-size:.76rem;
+  letter-spacing:.015em;
   color:var(--ink-soft);
 }
 .gallery.cols-2 figure.shot img,
@@ -506,19 +517,18 @@ figure.shot figcaption{
 }
 .quote::before{
   content:"\201C";
-  position:absolute; left:-.1rem; top:-3.2rem;
-  font-family:Fraunces,Georgia,serif;
-  font-size:13rem; line-height:1;
-  color:rgba(253,252,250,.72);
-  text-shadow:0 5px 22px rgba(42,44,40,.14);
+  position:absolute; left:-.4rem; top:-2.4rem;
+  font-size:11rem; line-height:1;
+  font-weight:700;
+  color:rgba(253,252,250,.66);
+  text-shadow:0 5px 22px rgba(42,44,40,.12);
   pointer-events:none;
 }
 .quote-text{
-  font-family:Fraunces,Georgia,serif;
-  font-weight:300; font-style:italic;
-  font-size:clamp(1.6rem,3.6vw,2.9rem);
-  line-height:1.26;
-  letter-spacing:-.015em;
+  font-weight:400;
+  font-size:clamp(1.5rem,3.3vw,2.6rem);
+  line-height:1.22;
+  letter-spacing:-.032em;
   margin:0 0 1.6rem;
 }
 .quote-by{
@@ -645,7 +655,7 @@ figure.shot figcaption{
 }
 .lb-figure figcaption{
   margin-top:1rem; color:rgba(253,252,250,.78);
-  font-size:.88rem; font-style:italic;
+  font-size:.82rem; letter-spacing:.015em;
 }
 .lb-close,.lb-nav{
   all:unset; cursor:pointer;
