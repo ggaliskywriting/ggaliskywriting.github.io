@@ -1,4 +1,27 @@
-# ggaliskywriting.github.io
+# graysongalisky.com
+
+This one repo publishes two separate sites:
+
+| Address | What it is | Where it lives |
+| --- | --- | --- |
+| [graysongalisky.com](https://graysongalisky.com) | your Jekyll portfolio | `_pages/`, `_art/`, `_engineering/`, `_photography/`, `index.md`, `assets/` |
+| [graysongalisky.com/writing](https://graysongalisky.com/writing) | the scrolling notebook | everything inside `writing/` |
+
+They don't share anything and don't know about each other. The portfolio is
+built by GitHub's Jekyll, exactly as it was on the old account. The notebook
+is plain HTML that Jekyll copies through untouched.
+
+**Nothing links to the notebook.** It also carries a `noindex` tag, so it
+stays out of Google. That makes it unlisted, not private — anyone you send
+the address to can read it, so treat it as public writing.
+
+The rest of this file is about the notebook. For the portfolio, edit the
+markdown in `_pages/`, `_art/`, `_engineering/` and `_photography/` the same
+way you always did.
+
+---
+
+## The notebook
 
 A single-page scrolling notebook: photos, writing, quotes and music, laid out
 on one continuous colour wash.
@@ -22,7 +45,7 @@ can rot.
 
 ## Adding an entry
 
-Open `assets/js/entries.js`. That's the only file you need to touch.
+Open `writing/assets/js/entries.js`. That's the only file you need to touch.
 
 Copy one of the existing blocks, change it, save, refresh. Entries sort
 themselves by date (newest first), so it doesn't matter where in the list you
@@ -59,7 +82,7 @@ put a new one.
 
 ### Photos
 
-Put the image files in the `images/` folder, then point at them:
+Put the image files in the `writing/images/` folder, then point at them:
 
 ```js
 photos: [
@@ -77,9 +100,10 @@ draws generated abstract art instead, so the layout still looks finished:
 { src: 'placeholder:anything-here', alt: 'temporary' }
 ```
 
-Keep photos under roughly 2500px on the long edge and re-save as JPEG at
-~80% quality. The old site was a gigabyte of full-resolution files, which is
-why it was slow to clone.
+Keep photos under roughly 2000px on the long edge and re-save as JPEG at
+~80% quality — on a Mac, `sips -Z 2000 --setProperty formatOptions 80 photo.jpg`
+does it. Full-resolution camera files make the repo slow to clone and the page
+slow to open.
 
 ### Music
 
@@ -100,7 +124,7 @@ Linux), with the timeline dials in the system monospace so they read like
 instrument numerals. No webfonts are downloaded, so text appears immediately
 and the page works with no network at all.
 
-To change it, edit the two variables at the top of `assets/css/style.css`:
+To change it, edit the two variables at the top of `writing/assets/css/style.css`:
 
 ```css
 --font:      "Helvetica Neue",Helvetica,Arial,"Liberation Sans",sans-serif;
@@ -109,7 +133,7 @@ To change it, edit the two variables at the top of `assets/css/style.css`:
 
 Always keep a few fallbacks after your choice, separated by commas — that's
 what the browser uses when the first font isn't installed. If you ever want a
-webfont, add its `<link>` to `index.html` and put the family name first in
+webfont, add its `<link>` to `writing/index.html` and put the family name first in
 `--font`; just know you're trading instant text for a network request.
 
 ### Colours
@@ -134,7 +158,7 @@ at the top through grass and forest to cold stone, finishing on a sunset.
 
 ## Linking to a single entry
 
-Every entry has its own URL: `https://ggaliskywriting.github.io/#desert-varnish`
+Every entry has its own URL: `https://graysongalisky.com/writing/#desert-varnish`
 
 Send that to someone and they land on that entry with the dials already spun
 to its date. The link icon in each entry's header copies that URL to your
@@ -149,71 +173,94 @@ from the title and date.
 
 ## Previewing it locally
 
-Double-clicking `index.html` works for a quick look.
+Double-clicking `writing/index.html` works for a quick look.
 
-To see it exactly as visitors will, serve it over HTTP:
+To see it exactly as visitors will, serve it over HTTP from this folder:
 
 ```sh
 cd ggaliskywriting.github.io
 python3 -m http.server 8787
 ```
 
-Then open <http://127.0.0.1:8787>. Stop it with `Ctrl-C`.
+Then open <http://127.0.0.1:8787/writing/>. Stop it with `Ctrl-C`.
+
+The portfolio at the root won't render this way — it needs Ruby and Jekyll to
+build. If you only change things under `writing/`, you never need that; push
+and look at the real site.
 
 ---
 
-## Publishing it
+## Publishing a change
 
-The repo is set up to push to the **ggaliskywriting** account.
-
-1. Create an empty repo at <https://github.com/new> named
-   `ggaliskywriting.github.io`. Don't add a README or licence.
-2. Push:
-
-   ```sh
-   git remote add origin https://github.com/ggaliskywriting/ggaliskywriting.github.io.git
-   git push -u origin main
-   ```
-
-3. In the repo: **Settings → Pages → Build and deployment**, set source to
-   *Deploy from a branch*, branch `main`, folder `/ (root)`. Save.
-
-A minute later it's live at <https://ggaliskywriting.github.io>.
-
-Every later update is just:
+It's already live, so posting is just three lines:
 
 ```sh
-git add -A && git commit -m "new entry" && git push
+git add -A
+git commit -m "new entry"
+git push
 ```
 
-### About the old domain
+Give it about five minutes. GitHub rebuilds the site on every push, and the
+build is slower now that Jekyll is involved. You can watch it finish under
+the **Actions** tab on GitHub.
 
-The previous site used **graysongalisky.com**. Domain registration lives with
-your registrar, not GitHub, so losing the old GitHub account doesn't cost you
-the domain. To point it here:
+---
 
-1. Create a file called `CNAME` in this folder containing one line:
-   `graysongalisky.com`
-2. At your registrar, set an `ALIAS`/`ANAME` or four `A` records for the apex
-   domain to GitHub's addresses: `185.199.108.153`, `185.199.109.153`,
-   `185.199.110.153`, `185.199.111.153`.
-3. Add a `CNAME` record for `www` pointing to `ggaliskywriting.github.io`.
-4. In **Settings → Pages**, enter the custom domain and tick *Enforce HTTPS*
-   once the certificate is issued.
+## The domain
+
+**graysongalisky.com** is registered with Squarespace (it came across from
+Google Domains) and points at GitHub with four `A` records on the apex:
+`185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`.
+The `CNAME` file in this folder is what tells GitHub the domain belongs to
+this repo. Don't delete it — the site drops off the domain if you do.
+
+Two things to keep an eye on:
+
+- **The registration expires 12 November.** Renew it at Squarespace. If it
+  lapses the domain can be bought by anyone, and that's the one part of this
+  nobody can rebuild for you.
+- **`www.graysongalisky.com` still points at the GitHub account you lost**, so
+  it doesn't work. In the Squarespace DNS panel, change the `www` record to a
+  `CNAME` pointing at `ggaliskywriting.github.io`, and GitHub will redirect
+  `www` to the plain domain.
 
 ---
 
 ## What's in here
 
 ```
-index.html              page shell
-assets/css/style.css    all styling
-assets/js/entries.js    >>> your content lives here <<<
-assets/js/app.js        dials, scrubber, gradient, deep links, lightbox, filters
-assets/js/markdown.js   the small text formatter used by body text
-images/                 your photos
-.nojekyll               tells GitHub Pages to serve the files as-is
+CNAME                   claims graysongalisky.com for this repo
+
+_config.yml             portfolio settings (title, theme, plugins)
+index.md                the portfolio home page
+_pages/                 about, engineering, art, climbing journal, 404
+_art/  _engineering/  _photography/     portfolio write-ups
+_data/navigation.yml    the portfolio's top menu
+assets/                 the portfolio's photos and diagrams
+Gemfile                 only used if you ever build Jekyll locally
+
+writing/index.html              the notebook's page shell
+writing/assets/css/style.css    all of the notebook's styling
+writing/assets/js/entries.js    >>> your writing lives here <<<
+writing/assets/js/app.js        dials, scrubber, gradient, deep links, lightbox
+writing/assets/js/markdown.js   the small text formatter used by body text
+writing/images/                 your photos for the notebook
 ```
 
 `app.js` is commented if you want to change behaviour, but you never need to
 open it just to post something.
+
+### A note on the portfolio's photos
+
+The originals were 1 GB — single frames up to 24 MB, which is more than
+GitHub will publish and far more than a browser should download. Every photo
+here has been capped at 2000px on its longest edge, which looks identical on
+screen and brought the site down to 194 MB. **Your full-resolution originals
+are untouched** in the old `ggalisky/portfolio_mm` repo, which is still public
+and readable even though you can't sign in to it.
+
+If you add new photos, resize them the same way first. On a Mac:
+
+```sh
+sips -Z 2000 --setProperty formatOptions 80 your-photo.jpg
+```
