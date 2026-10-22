@@ -1,0 +1,711 @@
+/* ============================================================
+   Grayson Galisky — scrolling notebook
+   Plain CSS. No build step. Edit freely.
+   ============================================================ */
+
+:root{
+  --ink:        #2d2a32;
+  --ink-soft:   #5a5560;
+  --paper:      rgba(255,255,255,.58);
+  --paper-edge: rgba(255,255,255,.75);
+  --rail-w:     210px;
+  --measure:    34rem;       /* comfortable reading width */
+  --r-lg:       28px;
+  --r-md:       18px;
+  --ease:       cubic-bezier(.22,.78,.26,1);
+}
+
+*,*::before,*::after{ box-sizing:border-box }
+
+html{
+  scroll-behavior:smooth;
+  -webkit-text-size-adjust:100%;
+}
+
+body{
+  margin:0;
+  font-family:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;
+  font-weight:400;
+  color:var(--ink);
+  background:#f7e9f3;              /* fallback before JS paints */
+  line-height:1.65;
+  overflow-x:hidden;
+}
+
+img{ max-width:100%; display:block }
+
+a{ color:inherit; text-decoration-color:rgba(45,42,50,.3); text-underline-offset:3px }
+a:hover{ text-decoration-color:currentColor }
+
+.skip{
+  position:absolute; left:-9999px; top:0; z-index:99;
+  background:#fff; padding:.75rem 1rem; border-radius:0 0 12px 0;
+}
+.skip:focus{ left:0 }
+
+:focus-visible{
+  outline:2.5px solid var(--ink);
+  outline-offset:3px;
+  border-radius:4px;
+}
+
+/* ============================================================
+   BACKGROUND LAYERS
+   #backdrop  : document-tall vertical gradient of every entry colour
+   #blobs     : drifting abstract shapes
+   #grain     : paper tooth
+   ============================================================ */
+
+#backdrop{
+  position:absolute; inset:0 0 auto 0;
+  width:100%;
+  z-index:-3;
+  background-image:linear-gradient(to bottom,#f7e9f3,#e7eaff);
+  transition:background-image .4s linear;
+}
+
+#blobs{
+  position:fixed; inset:0;
+  z-index:-2;
+  pointer-events:none;
+  overflow:hidden;
+  opacity:.55;
+}
+#blobs span{
+  position:absolute;
+  border-radius:50%;
+  filter:blur(60px);
+  mix-blend-mode:soft-light;
+  animation:drift linear infinite alternate;
+}
+@keyframes drift{
+  from{ transform:translate3d(0,0,0) scale(1) }
+  to  { transform:translate3d(6vw,-8vh,0) scale(1.25) }
+}
+
+#grain{
+  position:fixed; inset:0;
+  z-index:-1;
+  pointer-events:none;
+  opacity:.22;
+  mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.38'/%3E%3C/svg%3E");
+}
+
+/* ============================================================
+   HERO
+   ============================================================ */
+
+.hero{
+  min-height:88vh;
+  display:flex; flex-direction:column; justify-content:center;
+  padding:12vh 8vw 8vh;
+  max-width:1100px;
+}
+.hero-kicker{
+  font-size:.8rem; letter-spacing:.34em; text-transform:uppercase;
+  color:var(--ink-soft); margin:0 0 1.6rem;
+}
+.hero-title{
+  font-family:Fraunces,Georgia,serif;
+  font-weight:300;
+  font-size:clamp(3.4rem,13vw,9.5rem);
+  line-height:.88;
+  letter-spacing:-.03em;
+  margin:0 0 1.8rem;
+}
+.hero-title em{
+  font-style:italic;
+  font-weight:500;
+  display:inline-block;
+  background:linear-gradient(100deg,#c98fb8,#8f9ede 45%,#79c2b4);
+  -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.hero-sub{
+  font-size:clamp(1rem,1.6vw,1.2rem);
+  max-width:33rem; color:var(--ink-soft); margin:0;
+}
+.hero-scroll{
+  margin-top:4rem; font-size:.78rem; letter-spacing:.3em;
+  text-transform:uppercase; color:var(--ink-soft);
+  animation:bob 2.6s var(--ease) infinite;
+}
+@keyframes bob{ 0%,100%{transform:translateY(0);opacity:.5} 50%{transform:translateY(7px);opacity:1} }
+
+/* ============================================================
+   LAYOUT: rail + feed
+   ============================================================ */
+
+.layout{
+  display:grid;
+  grid-template-columns:var(--rail-w) minmax(0,1fr);
+  gap:0 3vw;
+  padding:0 6vw 0 4vw;
+  align-items:start;
+}
+
+/* ---------- TIMELINE DIALS ----------
+   Three reels — year / month / day — that slide under one fixed readout
+   window. Each reel has a different number of cells, so they travel at
+   different rates: the year barely creeps, the day ticks every entry.
+   ------------------------------------------------------------------- */
+
+.rail{
+  position:sticky; top:0;
+  height:100vh;
+  display:flex; align-items:center;
+}
+
+.dials{
+  --cell-h:38px;
+  --dial-h:342px;              /* 9 cells */
+  width:100%;
+  user-select:none;
+}
+
+.dial-caps{
+  display:grid;
+  grid-template-columns:1.25fr 1fr .8fr;
+  gap:.35rem;
+  margin:0 0 .7rem;
+  font-size:.58rem;
+  letter-spacing:.26em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  opacity:.5;
+}
+
+.dial-stack{
+  position:relative;
+  display:grid;
+  grid-template-columns:1.25fr 1fr .8fr;
+  gap:.35rem;
+  height:var(--dial-h);
+  border-top:1px solid rgba(45,42,50,.12);
+  border-bottom:1px solid rgba(45,42,50,.12);
+}
+
+/* the fixed readout slot the reels pass through */
+.dial-window{
+  position:absolute; left:-.55rem; right:-.55rem;
+  top:50%; height:var(--cell-h);
+  transform:translateY(-50%);
+  border-top:1px solid rgba(45,42,50,.42);
+  border-bottom:1px solid rgba(45,42,50,.42);
+  background:linear-gradient(to right,rgba(255,255,255,.55),rgba(255,255,255,.2));
+  pointer-events:none;
+  z-index:2;
+}
+.dial-window::before,
+.dial-window::after{            /* little machined notches, left and right */
+  content:"";
+  position:absolute; top:50%;
+  width:5px; height:5px;
+  transform:translateY(-50%) rotate(45deg);
+  background:var(--ink);
+}
+.dial-window::before{ left:-2.5px }
+.dial-window::after { right:-2.5px }
+
+.dial{
+  position:relative;
+  height:100%;
+  overflow:hidden;
+  -webkit-mask-image:linear-gradient(to bottom,transparent,#000 26%,#000 74%,transparent);
+          mask-image:linear-gradient(to bottom,transparent,#000 26%,#000 74%,transparent);
+}
+.dial + .dial{ border-left:1px solid rgba(45,42,50,.1) }
+
+.reel{
+  list-style:none; margin:0; padding:0;
+  position:absolute; top:0; left:0; right:0;
+  will-change:transform;
+}
+
+.cell{ height:var(--cell-h) }
+
+.cell button{
+  all:unset;
+  display:flex; align-items:center;
+  height:100%;
+  width:100%;
+  padding-left:.45rem;
+  cursor:pointer;
+  font-variant-numeric:tabular-nums lining-nums;
+  font-size:.92rem;
+  letter-spacing:.06em;
+  color:var(--ink);
+  white-space:nowrap;
+  transition:color .3s;
+}
+.dial[data-unit="month"] .cell button{ font-size:.82rem; letter-spacing:.12em }
+.dial[data-unit="day"]   .cell button{ font-size:.86rem }
+
+/* opacity + scale are set per-frame by app.js to fake a cylinder */
+.cell.is-read button{ font-weight:700 }
+.cell button:hover{ color:#8f6ea8 }
+
+.dial-readout{
+  margin:.8rem 0 0;
+  font-size:.6rem;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  min-height:1.4em;
+  opacity:.65;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* ============================================================
+   FEED + ENTRIES
+   ============================================================ */
+
+.feed{ max-width:70rem; padding-bottom:4vh }
+
+.entry{
+  min-height:72vh;
+  padding:11vh 0;
+  scroll-margin-top:0;
+  display:flex; flex-direction:column; justify-content:center;
+}
+
+/* reveal-on-scroll */
+.entry > *{
+  opacity:0;
+  transform:translateY(26px);
+  transition:opacity .85s var(--ease),transform .85s var(--ease);
+}
+.entry.in > *{ opacity:1; transform:none }
+.entry.in > *:nth-child(2){ transition-delay:.08s }
+.entry.in > *:nth-child(3){ transition-delay:.16s }
+
+/* ---------- entry header ---------- */
+
+.e-head{
+  display:flex; align-items:center; gap:.85rem;
+  flex-wrap:wrap;
+  margin-bottom:1.5rem;
+}
+.e-emoji{
+  font-size:1.9rem; line-height:1;
+  filter:drop-shadow(0 3px 7px rgba(0,0,0,.14));
+}
+.e-meta{
+  display:flex; align-items:center; gap:.6rem;
+  font-size:.74rem; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.e-kind{
+  padding:.28rem .7rem;
+  border-radius:999px;
+  background:rgba(255,255,255,.55);
+  border:1px solid var(--paper-edge);
+  letter-spacing:.14em;
+}
+.e-link{
+  all:unset;
+  cursor:pointer;
+  font-size:1rem;
+  line-height:1;
+  padding:.4rem;
+  border-radius:9px;
+  opacity:.4;
+  transition:opacity .2s,transform .2s,background .2s;
+}
+.e-link:hover{ opacity:1; transform:rotate(-12deg) scale(1.12); background:rgba(255,255,255,.5) }
+
+.e-title{
+  font-family:Fraunces,Georgia,serif;
+  font-weight:500;
+  font-size:clamp(1.9rem,4.4vw,3.4rem);
+  line-height:1.06;
+  letter-spacing:-.02em;
+  margin:0 0 1.3rem;
+  max-width:28ch;
+}
+
+/* ---------- prose ---------- */
+
+.prose{
+  max-width:var(--measure);
+  font-size:1.07rem;
+  background:var(--paper);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);
+          backdrop-filter:blur(14px) saturate(140%);
+  border:1px solid var(--paper-edge);
+  border-radius:var(--r-lg);
+  padding:2.2rem 2.4rem;
+  box-shadow:0 18px 50px -24px rgba(45,42,50,.3);
+}
+.prose > :first-child{ margin-top:0 }
+.prose > :last-child{ margin-bottom:0 }
+.prose p{ margin:0 0 1.15em }
+.prose h3,.prose h4,.prose h5{
+  font-family:Fraunces,Georgia,serif; font-weight:500;
+  line-height:1.2; margin:1.9em 0 .6em;
+}
+.prose h3{ font-size:1.5rem }
+.prose h4{ font-size:1.18rem }
+.prose h5{ font-size:1.02rem; letter-spacing:.02em }
+.prose ul,.prose ol{ margin:0 0 1.15em; padding-left:1.3em }
+.prose li{ margin:.3em 0 }
+.prose blockquote{
+  margin:1.5em 0;
+  padding:.2em 0 .2em 1.3em;
+  border-left:3px solid rgba(45,42,50,.22);
+  font-family:Fraunces,Georgia,serif; font-style:italic;
+  color:var(--ink-soft);
+}
+.prose hr{
+  border:0; height:1px; margin:2.2em 0;
+  background:linear-gradient(to right,transparent,rgba(45,42,50,.28),transparent);
+}
+.prose code{
+  font-size:.88em; padding:.15em .4em; border-radius:6px;
+  background:rgba(45,42,50,.08);
+}
+.prose .dropcap::first-letter{
+  font-family:Fraunces,Georgia,serif;
+  font-size:3.4em; font-weight:500; line-height:.82;
+  float:left; margin:.07em .09em 0 0;
+  color:var(--ink);
+}
+
+/* ---------- photos ---------- */
+
+.gallery{ display:grid; gap:1.4rem; margin:0 0 1.8rem }
+.gallery.cols-1{ grid-template-columns:1fr; max-width:52rem }
+.gallery.cols-2{ grid-template-columns:repeat(2,1fr) }
+.gallery.cols-3{ grid-template-columns:repeat(3,1fr) }
+
+figure.shot{
+  margin:0;
+  cursor:zoom-in;
+  transition:transform .5s var(--ease);
+}
+/* No explicit height — aspect-ratio below reserves the box before the file
+   loads, so the page doesn't jump around as photos arrive. */
+figure.shot img{
+  width:100%; object-fit:cover;
+  border-radius:var(--r-md);
+  background:rgba(255,255,255,.3);
+  box-shadow:0 22px 46px -20px rgba(45,42,50,.45);
+  transition:box-shadow .5s var(--ease);
+}
+figure.shot:nth-child(odd){  transform:rotate(-.7deg) }
+figure.shot:nth-child(even){ transform:rotate(.6deg) }
+figure.shot:hover{ transform:rotate(0deg) scale(1.022); z-index:2 }
+figure.shot:hover img{ box-shadow:0 30px 60px -18px rgba(45,42,50,.5) }
+figure.shot figcaption{
+  margin-top:.65rem;
+  font-size:.8rem; font-style:italic;
+  color:var(--ink-soft);
+}
+.gallery.cols-2 figure.shot img,
+.gallery.cols-3 figure.shot img{ aspect-ratio:4/5 }
+.gallery.cols-1 figure.shot img{ aspect-ratio:3/2 }
+
+/* side-by-side photo essay */
+.essay{
+  display:grid;
+  grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);
+  gap:2.6rem;
+  align-items:center;
+}
+.essay .gallery{ margin:0 }
+.essay.flip .gallery{ order:2 }
+
+/* ---------- quote ---------- */
+
+.quote{
+  position:relative;
+  max-width:44rem;
+  padding:1rem 0 0 4.5rem;
+}
+.quote::before{
+  content:"\201C";
+  position:absolute; left:-.1rem; top:-3.2rem;
+  font-family:Fraunces,Georgia,serif;
+  font-size:13rem; line-height:1;
+  color:rgba(255,255,255,.72);
+  text-shadow:0 5px 22px rgba(45,42,50,.14);
+  pointer-events:none;
+}
+.quote-text{
+  font-family:Fraunces,Georgia,serif;
+  font-weight:300; font-style:italic;
+  font-size:clamp(1.6rem,3.6vw,2.9rem);
+  line-height:1.26;
+  letter-spacing:-.015em;
+  margin:0 0 1.6rem;
+}
+.quote-by{
+  font-size:.82rem; letter-spacing:.24em; text-transform:uppercase;
+  color:var(--ink-soft); margin:0;
+}
+.quote-note{
+  margin-top:1.8rem; max-width:30rem;
+  font-size:.97rem; color:var(--ink-soft);
+}
+
+/* ---------- music ---------- */
+
+.music{
+  display:grid;
+  grid-template-columns:minmax(0,22rem) minmax(0,1fr);
+  gap:2.4rem; align-items:start;
+}
+.music-embed{
+  border:0; width:100%; height:352px;
+  border-radius:var(--r-md);
+  box-shadow:0 22px 46px -22px rgba(45,42,50,.45);
+  background:rgba(255,255,255,.3);
+}
+.music-card{
+  display:block;
+  padding:1.6rem;
+  border-radius:var(--r-md);
+  background:var(--paper);
+  border:1px solid var(--paper-edge);
+  -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+  text-decoration:none;
+  box-shadow:0 18px 44px -24px rgba(45,42,50,.35);
+  transition:transform .4s var(--ease);
+}
+.music-card:hover{ transform:translateY(-4px) }
+/* a sleeve-and-record stand-in, drawn in CSS so there's no asset to manage */
+.music-card .mc-art{
+  aspect-ratio:1; border-radius:12px; margin-bottom:1rem;
+  background:
+    radial-gradient(circle at 50% 50%,
+      rgba(45,42,50,.55) 0 3%,
+      transparent 3% 7%,
+      rgba(45,42,50,.14) 7% 7.6%,
+      transparent 7.6% 15%,
+      rgba(45,42,50,.12) 15% 15.6%,
+      transparent 15.6% 25%,
+      rgba(45,42,50,.1) 25% 25.6%,
+      transparent 25.6% 38%,
+      rgba(45,42,50,.08) 38% 38.6%,
+      transparent 38.6%),
+    linear-gradient(140deg,rgba(255,255,255,.7),rgba(255,255,255,.15));
+}
+.music-card .mc-track{ font-weight:500; font-size:1.05rem }
+.music-card .mc-artist{ color:var(--ink-soft); font-size:.9rem }
+.music-card .mc-cta{
+  margin-top:.9rem; font-size:.76rem;
+  letter-spacing:.2em; text-transform:uppercase; color:var(--ink-soft);
+}
+
+/* ============================================================
+   FILTER PILLS
+   ============================================================ */
+
+.filters{
+  position:fixed;
+  bottom:1.4rem; left:50%;
+  transform:translateX(-50%);
+  z-index:30;
+  display:flex; gap:.4rem;
+  padding:.45rem;
+  border-radius:999px;
+  background:rgba(255,255,255,.62);
+  -webkit-backdrop-filter:blur(18px) saturate(150%);
+          backdrop-filter:blur(18px) saturate(150%);
+  border:1px solid var(--paper-edge);
+  box-shadow:0 14px 36px -14px rgba(45,42,50,.4);
+  max-width:94vw; overflow-x:auto;
+  scrollbar-width:none;
+  transition:opacity .3s,transform .45s var(--ease);
+}
+/* gets out of the way while you're reading forward */
+.filters.is-tucked{
+  opacity:0;
+  transform:translate(-50%,170%);
+  pointer-events:none;
+}
+.filters::-webkit-scrollbar{ height:0 }
+.filters button{
+  all:unset;
+  cursor:pointer;
+  white-space:nowrap;
+  padding:.44rem .95rem;
+  border-radius:999px;
+  font-size:.8rem;
+  color:var(--ink-soft);
+  transition:background .25s,color .25s;
+}
+.filters button:hover{ background:rgba(255,255,255,.7); color:var(--ink) }
+.filters button[aria-pressed="true"]{
+  background:var(--ink); color:#fff;
+}
+
+/* ============================================================
+   LIGHTBOX
+   ============================================================ */
+
+.lightbox{
+  position:fixed; inset:0; z-index:60;
+  display:flex; align-items:center; justify-content:center;
+  gap:1rem; padding:4vh 5vw;
+  background:rgba(32,28,36,.93);
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  animation:fade .3s var(--ease);
+}
+.lightbox[hidden]{ display:none }
+@keyframes fade{ from{opacity:0} to{opacity:1} }
+.lb-figure{ margin:0; max-width:100%; max-height:100%; text-align:center }
+.lb-figure img{
+  max-width:100%; max-height:82vh;
+  margin:0 auto;
+  border-radius:12px;
+  box-shadow:0 30px 70px -20px rgba(0,0,0,.7);
+}
+.lb-figure figcaption{
+  margin-top:1rem; color:rgba(255,255,255,.78);
+  font-size:.88rem; font-style:italic;
+}
+.lb-close,.lb-nav{
+  all:unset; cursor:pointer;
+  color:#fff; opacity:.6;
+  display:grid; place-items:center;
+  border-radius:50%;
+  transition:opacity .2s,background .2s;
+}
+.lb-close:hover,.lb-nav:hover{ opacity:1; background:rgba(255,255,255,.14) }
+.lb-close{ position:absolute; top:1.4rem; right:1.6rem; font-size:1.5rem; width:2.6rem; height:2.6rem }
+.lb-nav{ font-size:2.6rem; width:3rem; height:3rem; flex:none }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+
+.toast{
+  position:fixed; z-index:70;
+  bottom:5.4rem; left:50%;
+  transform:translate(-50%,14px);
+  padding:.65rem 1.2rem;
+  border-radius:999px;
+  background:var(--ink); color:#fff;
+  font-size:.84rem;
+  opacity:0; pointer-events:none;
+  transition:opacity .3s,transform .3s var(--ease);
+}
+.toast.show{ opacity:1; transform:translate(-50%,0) }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.footer{
+  text-align:center;
+  padding:14vh 8vw 11vh;
+  color:var(--ink-soft);
+  font-size:.9rem;
+}
+.footer-mark{ font-size:2rem; margin:0 0 .8rem; opacity:.5 }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width:1040px){
+  :root{ --rail-w:164px }
+  .dials{ --cell-h:34px; --dial-h:238px }
+  .cell button{ font-size:.84rem; padding-left:.3rem }
+  .dial-readout{ display:none }
+  .essay,.music{ grid-template-columns:1fr; gap:1.8rem }
+  .essay.flip .gallery{ order:0 }
+  .music-embed{ max-width:26rem }
+}
+
+/* ---- phones: the dials become a compact instrument panel up top ---- */
+@media (max-width:720px){
+  .layout{
+    grid-template-columns:1fr;
+    padding:0 6vw;
+  }
+  .rail{
+    position:sticky; top:0;
+    height:auto;
+    z-index:25;
+    margin:0 -6vw 1.2rem;
+    padding:.55rem 6vw;
+    background:rgba(255,255,255,.62);
+    -webkit-backdrop-filter:blur(18px) saturate(150%);
+          backdrop-filter:blur(18px) saturate(150%);
+    border-bottom:1px solid var(--paper-edge);
+  }
+  .dials{
+    --cell-h:29px; --dial-h:87px;
+    display:flex; align-items:center; gap:.9rem;
+  }
+  .dial-caps{ display:none }
+  .dial-stack{
+    width:9.4rem; flex:none;
+    border:0;
+  }
+  /* only the centre value should read clearly in a panel this short */
+  .dial{
+    -webkit-mask-image:linear-gradient(to bottom,transparent,#000 34%,#000 66%,transparent);
+            mask-image:linear-gradient(to bottom,transparent,#000 34%,#000 66%,transparent);
+  }
+  .dial-window{
+    left:0; right:0;
+    border-color:rgba(45,42,50,.3);
+    background:linear-gradient(to right,rgba(255,255,255,.4),rgba(255,255,255,.12));
+  }
+  .dial-window::before{ left:0 }
+  .dial-window::after { right:0 }
+  .cell button{ font-size:.74rem; justify-content:center; padding:0 }
+  .dial-readout{
+    display:block;
+    margin:0; flex:1 1 auto; min-width:0;
+    font-size:.58rem; opacity:.75;
+    white-space:normal;
+    line-height:1.35;
+    max-height:2.7em;
+  }
+
+  .gallery.cols-2,.gallery.cols-3{ grid-template-columns:1fr }
+  /* keep deep-linked entries clear of the sticky dial panel */
+  .entry{ min-height:0; padding:7vh 0; scroll-margin-top:6.5rem }
+  .prose{ padding:1.6rem 1.5rem }
+  .quote{ padding-left:0 }
+  .quote::before{ font-size:8rem; top:-2rem; left:-.3rem; opacity:.6 }
+  .hero{ padding:14vh 6vw 8vh }
+  .filters{ bottom:.8rem }
+  .lb-nav{ position:absolute; bottom:1.2rem }
+  .lb-prev{ left:1.2rem } .lb-next{ right:1.2rem }
+}
+
+@media (max-width:400px){
+  .dials{ --cell-h:27px; --dial-h:81px; gap:.6rem }
+  .dial-stack{ width:8.5rem }
+  .cell button{ font-size:.7rem }
+  .dial-readout{ font-size:.54rem; letter-spacing:.14em }
+}
+
+/* ============================================================
+   PREFERENCES
+   ============================================================ */
+
+@media (prefers-reduced-motion:reduce){
+  html{ scroll-behavior:auto }
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+  }
+  .entry > *{ opacity:1; transform:none }
+}
+
+@media print{
+  #backdrop,#blobs,#grain,.rail,.filters,.hero-scroll{ display:none }
+  .layout{ grid-template-columns:1fr }
+  .prose{ background:none; border:0; box-shadow:none; padding:0 }
+  .entry{ min-height:0; padding:1.5rem 0; page-break-inside:avoid }
+}

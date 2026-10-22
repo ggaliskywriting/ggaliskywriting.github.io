@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grayson Galisky — Writing, Photos & Noise</title>
+
+<meta name="description" content="A scrolling notebook of photographs, writing, quotes and music by Grayson Galisky.">
+<meta name="author" content="Grayson Galisky">
+<meta name="theme-color" content="#f7e9f3">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Grayson Galisky — Writing, Photos & Noise">
+<meta property="og:description" content="A scrolling notebook of photographs, writing, quotes and music.">
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23efe2f0'/><circle cx='32' cy='32' r='15' fill='none' stroke='%232d2a32' stroke-width='3'/><circle cx='32' cy='32' r='3.5' fill='%232d2a32'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,500;0,700;1,300;1,500&family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<!-- the big scroll-long colour wash; painted by app.js -->
+<div id="backdrop" aria-hidden="true"></div>
+<div id="blobs" aria-hidden="true"></div>
+<div id="grain" aria-hidden="true"></div>
+
+<a class="skip" href="#feed">Skip to entries</a>
+
+<header class="hero" id="top">
+  <p class="hero-kicker">a scrolling notebook</p>
+  <h1 class="hero-title">Grayson<br><em>Galisky</em></h1>
+  <p class="hero-sub">
+    Engineer &amp; nature adventurer. Photographs, half-finished thoughts,
+    stolen sentences, and songs I can't stop pulling apart.
+  </p>
+  <p class="hero-scroll" aria-hidden="true">scroll &darr;</p>
+</header>
+
+<div class="layout">
+  <!-- ░░ TIMELINE DIALS ░░ -->
+  <nav class="rail" id="rail" aria-label="Timeline">
+    <div class="dials" id="dials">
+      <p class="dial-caps" aria-hidden="true">
+        <span>year</span><span>month</span><span>day</span>
+      </p>
+      <div class="dial-stack">
+        <span class="dial-window" aria-hidden="true"></span>
+        <div class="dial" data-unit="year">
+          <ol class="reel" id="reelYear" aria-label="Jump to a year"></ol>
+        </div>
+        <div class="dial" data-unit="month">
+          <ol class="reel" id="reelMonth" aria-label="Jump to a month"></ol>
+        </div>
+        <div class="dial" data-unit="day">
+          <ol class="reel" id="reelDay" aria-label="Jump to an entry"></ol>
+        </div>
+      </div>
+      <p class="dial-readout" id="dialReadout" aria-live="polite"></p>
+    </div>
+  </nav>
+
+  <!-- ░░ ENTRIES ░░ -->
+  <main class="feed" id="feed"><!-- built by app.js --></main>
+</div>
+
+<footer class="footer">
+  <p class="footer-mark" aria-hidden="true">&#8258;</p>
+  <p>Made by hand, on purpose. <a href="#top">Back to the top &uarr;</a></p>
+</footer>
+
+<!-- ░░ FILTER PILLS ░░ -->
+<div class="filters" id="filters" role="group" aria-label="Filter entries by kind"></div>
+
+<!-- ░░ LIGHTBOX ░░ -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer" hidden>
+  <button class="lb-close" id="lbClose" aria-label="Close photo viewer">&times;</button>
+  <button class="lb-nav lb-prev" id="lbPrev" aria-label="Previous photo">&lsaquo;</button>
+  <figure class="lb-figure">
+    <img id="lbImg" alt="">
+    <figcaption id="lbCap"></figcaption>
+  </figure>
+  <button class="lb-nav lb-next" id="lbNext" aria-label="Next photo">&rsaquo;</button>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="assets/js/markdown.js"></script>
+<script src="assets/js/entries.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
