@@ -4,3 +4,8 @@
 .Trashes
 Thumbs.db
 desktop.ini
+_site
+.sass-cache
+.jekyll-metadata
+Gemfile.lock
+vendor
