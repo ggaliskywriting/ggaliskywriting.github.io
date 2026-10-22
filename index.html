@@ -7,13 +7,13 @@
 
 <meta name="description" content="A scrolling notebook of photographs, writing, quotes and music by Grayson Galisky.">
 <meta name="author" content="Grayson Galisky">
-<meta name="theme-color" content="#f7e9f3">
+<meta name="theme-color" content="#e6e2dc">
 
 <meta property="og:type" content="website">
 <meta property="og:title" content="Grayson Galisky — Writing, Photos & Noise">
 <meta property="og:description" content="A scrolling notebook of photographs, writing, quotes and music.">
 
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23efe2f0'/><circle cx='32' cy='32' r='15' fill='none' stroke='%232d2a32' stroke-width='3'/><circle cx='32' cy='32' r='3.5' fill='%232d2a32'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%23dcd8d0'/><path d='M8 46 L24 24 L34 38 L42 28 L56 46 Z' fill='%232a2c28'/><circle cx='44' cy='15' r='5' fill='%23b06c34'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,500;0,700;1,300;1,500&family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -41,23 +41,38 @@
 <div class="layout">
   <!-- ░░ TIMELINE DIALS ░░ -->
   <nav class="rail" id="rail" aria-label="Timeline">
-    <div class="dials" id="dials">
-      <p class="dial-caps" aria-hidden="true">
-        <span>year</span><span>month</span><span>day</span>
-      </p>
-      <div class="dial-stack">
-        <span class="dial-window" aria-hidden="true"></span>
-        <div class="dial" data-unit="year">
-          <ol class="reel" id="reelYear" aria-label="Jump to a year"></ol>
-        </div>
-        <div class="dial" data-unit="month">
-          <ol class="reel" id="reelMonth" aria-label="Jump to a month"></ol>
-        </div>
-        <div class="dial" data-unit="day">
-          <ol class="reel" id="reelDay" aria-label="Jump to an entry"></ol>
+    <div class="rail-body">
+
+      <!-- grab the dot to scrub the whole archive -->
+      <div class="scrub" id="scrub">
+        <div class="scrub-track" id="scrubTrack">
+          <span class="scrub-fill" id="scrubFill" aria-hidden="true"></span>
+          <span class="scrub-ticks" id="scrubTicks" aria-hidden="true"></span>
+          <span class="scrub-handle" id="scrubHandle" role="slider" tabindex="0"
+                aria-label="Scrub through the timeline"
+                aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></span>
         </div>
       </div>
-      <p class="dial-readout" id="dialReadout" aria-live="polite"></p>
+
+      <div class="dials" id="dials">
+        <p class="dial-caps" aria-hidden="true">
+          <span>year</span><span>month</span><span>day</span>
+        </p>
+        <div class="dial-stack">
+          <span class="dial-window" aria-hidden="true"></span>
+          <div class="dial" data-unit="year">
+            <ol class="reel" id="reelYear" aria-label="Jump to a year"></ol>
+          </div>
+          <div class="dial" data-unit="month">
+            <ol class="reel" id="reelMonth" aria-label="Jump to a month"></ol>
+          </div>
+          <div class="dial" data-unit="day">
+            <ol class="reel" id="reelDay" aria-label="Jump to an entry"></ol>
+          </div>
+        </div>
+        <p class="dial-readout" id="dialReadout" aria-live="polite"></p>
+      </div>
+
     </div>
   </nav>
 

@@ -1,8 +1,12 @@
 # ggaliskywriting.github.io
 
 A single-page scrolling notebook: photos, writing, quotes and music, laid out
-on one continuous colour wash with a year / month / day dial timeline on the
-left.
+on one continuous colour wash.
+
+Down the left side is a timeline built from two parts: three dials that read
+out the year, month and day of whatever you're looking at, and a scrub track
+with a tick per entry and a dot you can grab to fly through the whole archive.
+Arrow keys step through entries one at a time when the dot has focus.
 
 There is **no build step and no dependencies**. It's three files of plain
 HTML, CSS and JavaScript. Nothing to install, nothing to update, nothing that
@@ -86,10 +90,20 @@ simple card with no embedded player.
 ### Colours
 
 Each entry's `bg` is a stop in one tall gradient spanning the whole page, so
-every entry genuinely fades into the ones above and below it. There's a
-`PALETTE` of pastels at the top of `entries.js`, but any hex code works.
-Neighbouring entries look best a step or two apart on the colour wheel
-rather than wildly different.
+every entry genuinely fades into the ones above and below it.
+
+`PALETTE` at the top of `entries.js` holds a Yosemite-ish set — granite and
+dust greys, dry grass, pine, sunset orange:
+
+| | | | | |
+| --- | --- | --- | --- | --- |
+| `clay` | `sand` | `ember` | `meadow` | `lichen` |
+| `pine` | `fog` | `slate` | `granite` | `taupe` |
+
+Any hex code works too, but keep new colours **muted** — they sit behind body
+text, and anything saturated fights it. Neighbouring entries read best a step
+or two apart rather than wildly different; the current order runs warm desert
+at the top through grass and forest to cold stone, finishing on a sunset.
 
 ---
 
@@ -99,7 +113,8 @@ Every entry has its own URL: `https://ggaliskywriting.github.io/#desert-varnish`
 
 Send that to someone and they land on that entry with the dials already spun
 to its date. The link icon in each entry's header copies that URL to your
-clipboard.
+clipboard. As you scroll, the address bar quietly updates to whichever entry
+you're reading, so you can also just copy it out of the browser.
 
 The link comes from `slug`. **Once you've shared a link, don't change that
 entry's slug** or the link will break. If you omit `slug`, one is generated
@@ -169,7 +184,7 @@ the domain. To point it here:
 index.html              page shell
 assets/css/style.css    all styling
 assets/js/entries.js    >>> your content lives here <<<
-assets/js/app.js        dials, gradient, deep links, lightbox, filters
+assets/js/app.js        dials, scrubber, gradient, deep links, lightbox, filters
 assets/js/markdown.js   the small text formatter used by body text
 images/                 your photos
 .nojekyll               tells GitHub Pages to serve the files as-is

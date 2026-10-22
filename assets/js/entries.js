@@ -38,18 +38,21 @@
      - bullets   1. numbered   `code`   --- (divider)
    ============================================================================ */
 
+/* Yosemite in late afternoon: granite greys, dry grass, pine, sunset.
+   All deliberately muted — they're full-page backgrounds, so anything
+   saturated fights the text. Neighbouring entries read best a step or two
+   apart rather than wildly different. */
 const PALETTE = {
-  blush:       '#f9dce9',
-  butter:      '#fdf0c9',
-  mint:        '#d8f2e6',
-  sky:         '#d6ecfb',
-  periwinkle:  '#dfe0fb',
-  lilac:       '#ebdcf9',
-  peach:       '#fde3d4',
-  sage:        '#e4f0da',
-  clay:        '#f5e2d6',
-  mauve:       '#eed9e4',
-  fog:         '#e8e8ef',
+  clay:     '#d8bda9',   // warm stone
+  sand:     '#e3c6a3',   // sunlit granite
+  ember:    '#dda87e',   // sunset orange
+  meadow:   '#d4d4b0',   // dry grass
+  lichen:   '#c7d0bb',   // pale sage
+  pine:     '#b6c4b0',   // deep muted green
+  fog:      '#d2d8d5',   // valley haze
+  slate:    '#bfc9cf',   // cold shadow
+  granite:  '#d6d4ce',   // dry stone
+  taupe:    '#cac4bd',   // dust
 };
 
 window.ENTRIES = [
@@ -77,7 +80,7 @@ window.ENTRIES = [
     date: '2026-09-27',
     type: 'writing',
     title: 'Tolerance stacking is a theory of people',
-    bg: PALETTE.mint,
+    bg: PALETTE.sand,
     slug: 'tolerance-stacking',
     dropcap: true,
     body: `
@@ -123,7 +126,7 @@ window.ENTRIES = [
   {
     date: '2026-09-02',
     type: 'quote',
-    bg: PALETTE.sky,
+    bg: PALETTE.meadow,
     slug: 'dillard-seeing',
     quote: 'Beauty and grace are performed whether or not we sense them. The least we can do is try to be there.',
     by: 'Annie Dillard, Pilgrim at Tinker Creek',
@@ -139,7 +142,7 @@ window.ENTRIES = [
     date: '2026-08-14',
     type: 'photo-essay',
     title: 'Four days without a signal',
-    bg: PALETTE.periwinkle,
+    bg: PALETTE.lichen,
     slug: 'four-days-no-signal',
     cols: 1,
     photos: [
@@ -168,7 +171,7 @@ window.ENTRIES = [
     date: '2026-07-06',
     type: 'music',
     title: 'The drum fill that shouldn\'t work',
-    bg: PALETTE.lilac,
+    bg: PALETTE.pine,
     slug: 'drum-fill',
     // Replace with any Spotify track/album/playlist/episode link.
     //    In Spotify: right-click the song, then Share, then Copy Song Link.
@@ -197,7 +200,7 @@ window.ENTRIES = [
     date: '2026-05-21',
     type: 'writing',
     title: 'Notes on carrying heavy things',
-    bg: PALETTE.butter,
+    bg: PALETTE.fog,
     slug: 'carrying-heavy-things',
     body: `
       A short list, assembled over about nine hundred trail miles and one very
@@ -219,7 +222,7 @@ window.ENTRIES = [
     date: '2026-03-09',
     type: 'photos',
     title: 'Thaw',
-    bg: PALETTE.fog,
+    bg: PALETTE.slate,
     slug: 'thaw',
     cols: 2,
     photos: [
@@ -234,7 +237,7 @@ window.ENTRIES = [
   {
     date: '2025-12-31',
     type: 'quote',
-    bg: PALETTE.mauve,
+    bg: PALETTE.granite,
     slug: 'berry-wild-things',
     quote: 'For a time I rest in the grace of the world, and am free.',
     by: 'Wendell Berry, The Peace of Wild Things',
@@ -249,7 +252,7 @@ window.ENTRIES = [
     date: '2025-11-08',
     type: 'photo-essay',
     title: 'The shop at 2am',
-    bg: PALETTE.sage,
+    bg: PALETTE.taupe,
     slug: 'shop-at-2am',
     flip: true,
     cols: 1,
@@ -275,7 +278,7 @@ window.ENTRIES = [
     date: '2025-08-19',
     type: 'music',
     title: 'A song for driving at night',
-    bg: PALETTE.peach,
+    bg: PALETTE.ember,
     slug: 'driving-at-night',
     // No spotify link on this one — it renders as a simple card instead.
     track: 'Night Window',

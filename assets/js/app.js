@@ -18,7 +18,7 @@
   'use strict';
 
   /* ── the colour behind the hero, before the first entry takes over ── */
-  const HERO_BG = '#f7e9f3';
+  const HERO_BG = '#e6e2dc';
 
   const KINDS = {
     'photos':      { label: 'Photos' },
@@ -57,7 +57,7 @@
      scroll-spy from rewriting the address bar — otherwise the hash flickers
      through every entry the scroll passes on the way */
   let hashLockUntil = 0;
-  const hashLocked = () => Date.now() < hashLockUntil;
+  const hashLocked = () => Date.now() < hashLockUntil || scrub.dragging;
 
   /* ======================================================================
      small helpers
@@ -101,27 +101,31 @@
     };
   }
 
-  /* abstract pastel stand-in for a photo you haven't added yet */
+  /* Abstract stand-in for a photo you haven't added yet. Hues come from a
+     narrow earth band — stone, moss, dry grass, rust — so a placeholder sits
+     in the same world as everything else instead of looking like a filter. */
+  const EARTH_HUES = [26, 34, 44, 74, 96, 150, 198];
+
   function placeholderArt(seedStr) {
     const r = rng(seedOf(seedStr));
-    const baseHue = Math.floor(r() * 360);
+    const base = EARTH_HUES[Math.floor(r() * EARTH_HUES.length)];
     const blobs = [];
     for (let i = 0; i < 5; i++) {
-      const hue = (baseHue + i * 47 + r() * 30) % 360;
+      const hue = (base + (r() - 0.5) * 36 + 360) % 360;
       blobs.push(
         '<circle cx="' + (60 + r() * 480).toFixed(0) +
         '" cy="' + (60 + r() * 630).toFixed(0) +
-        '" r="' + (90 + r() * 180).toFixed(0) +
-        '" fill="hsl(' + hue.toFixed(0) + ',72%,' + (74 + r() * 12).toFixed(0) + '%)"/>'
+        '" r="' + (110 + r() * 180).toFixed(0) +
+        '" fill="hsl(' + hue.toFixed(0) + ',' + (15 + r() * 17).toFixed(0) +
+        '%,' + (60 + r() * 24).toFixed(0) + '%)"/>'
       );
     }
     const svg =
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 750">' +
         '<defs><filter id="b" x="-30%" y="-30%" width="160%" height="160%">' +
-          '<feGaussianBlur stdDeviation="55"/></filter></defs>' +
-        '<rect width="600" height="750" fill="hsl(' + baseHue + ',55%,93%)"/>' +
+          '<feGaussianBlur stdDeviation="62"/></filter></defs>' +
+        '<rect width="600" height="750" fill="hsl(' + base + ',13%,79%)"/>' +
         '<g filter="url(#b)">' + blobs.join('') + '</g>' +
-        '<rect width="600" height="750" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="2"/>' +
       '</svg>';
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   }
@@ -393,6 +397,7 @@
       return r.top + window.scrollY + r.height / 2 - line;
     });
     measureDials();
+    buildTicks();
   }
 
   function progressAt(sy) {
@@ -435,6 +440,115 @@
   }
 
   /* ======================================================================
+     THE SCRUBBER
+     A tick per entry on a tall thin track, plus a handle you can drag to
+     fly through the whole archive. Position maps to raw scroll progress so
+     dragging feels exactly like scrolling, only faster.
+     ====================================================================== */
+
+  const scrub = {
+    root:   $('#scrub'),
+    track:  $('#scrubTrack'),
+    fill:   $('#scrubFill'),
+    ticks:  $('#scrubTicks'),
+    handle: $('#scrubHandle'),
+    dragging: false,
+  };
+
+  const maxScroll = () => Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+  const isHorizontal = () => window.matchMedia('(max-width: 720px)').matches;
+
+  function buildTicks() {
+    if (!scrub.ticks) return;
+    const max = maxScroll();
+    scrub.ticks.innerHTML = visible.map(function (item) {
+      const r = item.el.getBoundingClientRect();
+      const at = clamp(((r.top + window.scrollY) / max) * 100, 0, 100);
+      return '<i style="' + (isHorizontal() ? 'left' : 'top') + ':' + at.toFixed(2) + '%"></i>';
+    }).join('');
+  }
+
+  /* reflect the current scroll position in the handle */
+  function paintScrub() {
+    if (!scrub.handle) return;
+    const pct = clamp((window.scrollY / maxScroll()) * 100, 0, 100);
+    if (isHorizontal()) {
+      scrub.handle.style.left = pct.toFixed(2) + '%';
+      scrub.handle.style.top = '';
+      if (scrub.fill) { scrub.fill.style.width = pct.toFixed(2) + '%'; scrub.fill.style.height = ''; }
+    } else {
+      scrub.handle.style.top = pct.toFixed(2) + '%';
+      scrub.handle.style.left = '';
+      if (scrub.fill) { scrub.fill.style.height = pct.toFixed(2) + '%'; scrub.fill.style.width = ''; }
+    }
+    scrub.handle.setAttribute('aria-valuenow', Math.round(pct));
+
+    if (activeIdx >= 0) {
+      const d = parseDate(visible[activeIdx].data.date);
+      const label = d.bad ? '' : MONTHS[d.m - 1] + ' ' + d.d + ', ' + d.y;
+      scrub.handle.dataset.label = label;
+      scrub.handle.setAttribute('aria-valuetext', label);
+    }
+  }
+
+  /* pointer position -> scroll position.
+     'instant' matters here: 'auto' would inherit the page's smooth scrolling
+     and the handle would swim away from the pointer instead of tracking it. */
+  function scrubTo(ev) {
+    const r = scrub.track.getBoundingClientRect();
+    const frac = isHorizontal()
+      ? (ev.clientX - r.left) / (r.width  || 1)
+      : (ev.clientY - r.top)  / (r.height || 1);
+    window.scrollTo({ top: clamp(frac, 0, 1) * maxScroll(), behavior: 'instant' });
+  }
+
+  function bindScrub() {
+    if (!scrub.track) return;
+
+    scrub.track.addEventListener('pointerdown', function (ev) {
+      ev.preventDefault();
+      /* scrub.dragging also holds the address bar steady — see hashLocked() */
+      scrub.dragging = true;
+      scrub.root.classList.add('is-dragging');
+      scrub.handle.focus();
+      scrub.track.setPointerCapture(ev.pointerId);
+      scrubTo(ev);
+    });
+
+    scrub.track.addEventListener('pointermove', function (ev) {
+      if (scrub.dragging) scrubTo(ev);
+    });
+
+    function endDrag(ev) {
+      if (!scrub.dragging) return;
+      scrub.dragging = false;
+      scrub.root.classList.remove('is-dragging');
+      if (ev && ev.pointerId != null && scrub.track.hasPointerCapture(ev.pointerId)) {
+        scrub.track.releasePointerCapture(ev.pointerId);
+      }
+      activeIdx = -1;        // force the hash to be rewritten for where we landed
+      update();
+    }
+    scrub.track.addEventListener('pointerup', endDrag);
+    scrub.track.addEventListener('pointercancel', endDrag);
+    scrub.track.addEventListener('lostpointercapture', endDrag);
+
+    /* keyboard: arrows step an entry at a time, Home/End jump to the ends */
+    scrub.handle.addEventListener('keydown', function (ev) {
+      const back = ev.key === 'ArrowUp' || ev.key === 'ArrowLeft';
+      const fwd  = ev.key === 'ArrowDown' || ev.key === 'ArrowRight';
+      if (!back && !fwd && ev.key !== 'Home' && ev.key !== 'End') return;
+      ev.preventDefault();
+      if (!visible.length) return;
+
+      let idx = ev.key === 'Home' ? 0
+              : ev.key === 'End'  ? visible.length - 1
+              : clamp((activeIdx < 0 ? 0 : activeIdx) + (fwd ? 1 : -1), 0, visible.length - 1);
+      jumpTo(visible[idx].slug, true);
+    });
+  }
+
+  /* ======================================================================
      the gradient backdrop
      ====================================================================== */
 
@@ -469,10 +583,10 @@
     const host = $('#blobs');
     if (!host || reduceMotion) return;
     const r = rng(1337);
-    const tints = ['#ffffff', '#ffd9e8', '#d4f5e9', '#dfe1ff', '#fff3c4', '#ecdcff'];
+    const tints = ['#fdfcfa', '#c6d0bb', '#e0c7a6', '#bfc9cf', '#d6d2c6'];
     let html = '';
-    for (let i = 0; i < 6; i++) {
-      const size = 26 + r() * 34;
+    for (let i = 0; i < 4; i++) {
+      const size = 42 + r() * 36;
       html += '<span style="' +
         'width:' + size.toFixed(1) + 'vw;height:' + size.toFixed(1) + 'vw;' +
         'left:' + (r() * 92).toFixed(1) + 'vw;top:' + (r() * 88).toFixed(1) + 'vh;' +
@@ -519,6 +633,8 @@
     const firstTop = visible[0].el.getBoundingClientRect().top;
     const past = firstTop <= refLine();
     setActive(past ? clamp(Math.round(p), 0, visible.length - 1) : -1);
+
+    paintScrub();
   }
 
   /* scrolling is noisy, so coalesce it to one update per frame */
@@ -704,6 +820,8 @@
      ====================================================================== */
 
   function bind() {
+    bindScrub();
+
     /* dial clicks: jump to the entry that cell represents */
     $('#dials').addEventListener('click', function (ev) {
       const btn = ev.target.closest('button[data-idx]');
